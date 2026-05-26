@@ -246,6 +246,24 @@ background:#1e293b;
 color:white;
 }
 
+.rastreio-card{
+padding:25px;
+border-left:6px solid #2563eb;
+}
+
+.rastreio-card h2{
+margin-top:0;
+color:#2563eb;
+}
+
+.filtro-box{
+transition:.2s;
+}
+
+.filtro-box:hover{
+transform:translateY(-2px);
+}
+
 @media(max-width:768px){
 .grid{
 grid-template-columns:1fr;

@@ -1,491 +1,304 @@
-const SUPABASE_URL =
-'https://httesayqbjeqgkdnkyak.supabase.co'
+const SUPABASE_URL='https://httesayqbjeqgkdnkyak.supabase.co'
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dGVzYXlxYmplcWdrZG5reWFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyOTA1NTEsImV4cCI6MjA5NDg2NjU1MX0.CAyjBpq4Wg6vGwjg-9lFosjNo7B9kX87F929qhwGf9Y'
 
-const SUPABASE_KEY =
-'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh0dGVzYXlxYmplcWdrZG5reWFrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyOTA1NTEsImV4cCI6MjA5NDg2NjU1MX0.CAyjBpq4Wg6vGwjg-9lFosjNo7B9kX87F929qhwGf9Y'
+const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
 
-const client =
-window.supabase.createClient(
-SUPABASE_URL,
-SUPABASE_KEY
-)
-
-let viagens = []
-let viagemAtual = null
+let viagens=[]
+let viagemAtual=null
 
 function agoraBrasil(){
-
-const agora = new Date()
-
-const data =
-agora.toLocaleDateString('sv-SE')
-
-const hora =
-agora.toLocaleTimeString(
-'pt-BR',
-{
-hour12:false
-}
-)
-
-return `${data} ${hora}`
+ const agora=new Date()
+ return `${agora.toLocaleDateString('sv-SE')} ${agora.toLocaleTimeString('pt-BR',{hour12:false})}`
 }
 
 function mostrarTela(tela){
+ document.querySelectorAll('[id$="Tela"]').forEach(el=>el.classList.add('hidden'))
+ document.getElementById(tela+'Tela').classList.remove('hidden')
 
-document
-.querySelectorAll('[id$="Tela"]')
-.forEach(el=>el.classList.add('hidden'))
+ if(tela==='baixa') atualizarDashboardBaixa()
+}
 
-document
-.getElementById(tela+'Tela')
-.classList.remove('hidden')
+function normalizarNumero(numero){
+ return String(numero).replace(/^0+/,'')
 }
 
 async function carregar(){
 
-const { data: motoristas } =
-await client
-.from('motoristas')
-.select('*')
+ const {data:motoristas}=await client.from('motoristas').select('*')
+ const {data:veiculos}=await client.from('veiculos').select('*')
+ const {data:viagensData}=await client.from('viagens').select('*').order('numero',{ascending:false})
 
-const { data: veiculos } =
-await client
-.from('veiculos')
-.select('*')
+ viagens=viagensData||[]
 
-const { data: viagensData } =
-await client
-.from('viagens')
-.select('*')
-.order('numero',{
-ascending:false
-})
-.limit(10)
+ carregarSelects(motoristas,veiculos)
 
-viagens = viagensData || []
+ render()
+ atualizarDashboardBaixa()
+}
 
-document.getElementById('placa').innerHTML =
-'<option>Selecione placa</option>'
+function carregarSelects(motoristas,veiculos){
 
-document.getElementById('placaBaixa').innerHTML =
-'<option>Selecione a placa</option>'
+ document.getElementById('placa').innerHTML='<option>Selecione placa</option>'
+ document.getElementById('placaBaixa').innerHTML='<option>Selecione placa</option>'
 
-veiculos.forEach(v=>{
+ veiculos.forEach(v=>{
+   document.getElementById('placa').innerHTML+=`<option value="${v.placa}">${v.placa}</option>`
+ })
 
-document.getElementById('placa').innerHTML += `
-<option value="${v.placa}">
-${v.placa}
-</option>
-`
+ const placas=[...new Set(
+   viagens
+   .filter(v=>v.status==='FINALIZADA')
+   .map(v=>v.placa)
+ )]
 
-})
+ placas.forEach(p=>{
+   document.getElementById('placaBaixa').innerHTML+=`<option value="${p}">${p}</option>`
+ })
 
-viagens
-.filter(v=>v.status==='FINALIZADA')
-.forEach(v=>{
+ document.getElementById('motorista').innerHTML='<option>Selecione motorista</option>'
 
-document.getElementById('placaBaixa').innerHTML += `
-<option value="${v.placa}">
-${v.placa}
-</option>
-`
-})
-
-document.getElementById('motorista').innerHTML =
-'<option>Selecione motorista</option>'
-
-motoristas.forEach(m=>{
-
-document.getElementById('motorista').innerHTML += `
-<option value="${m.cpf}">
-${m.nome}
-</option>
-`
-
-})
-
-render()
+ motoristas.forEach(m=>{
+   document.getElementById('motorista').innerHTML+=`<option value="${m.cpf}">${m.nome}</option>`
+ })
 }
 
 async function criarViagem(){
 
-const placa =
-document.getElementById('placa').value
+ const placa=document.getElementById('placa').value
+ const cpf=document.getElementById('motorista').value
 
-const cpf =
-document.getElementById('motorista').value
+ if(placa==='Selecione placa'||cpf==='Selecione motorista'){
+   Swal.fire('Preencha os campos')
+   return
+ }
 
-if(
-placa === 'Selecione placa' ||
-cpf === 'Selecione motorista'
-){
-Swal.fire('Preencha os campos')
-return
-}
+ const {data:motorista}=await client.from('motoristas').select('*').eq('cpf',cpf).single()
 
-const { data: motorista } =
-await client
-.from('motoristas')
-.select('*')
-.eq('cpf', cpf)
-.single()
+ await client.from('viagens').insert([{
+   placa,
+   motorista:motorista.nome,
+   cpf_motorista:cpf,
+   status:'ABERTA',
+   created_at:agoraBrasil()
+ }])
 
-await client
-.from('viagens')
-.insert([{
-placa,
-motorista:motorista.nome,
-cpf_motorista:cpf,
-status:'ABERTA',
-created_at:agoraBrasil()
-}])
-
-Swal.fire('Viagem criada')
-
-carregar()
+ Swal.fire('Viagem criada')
+ carregar()
 }
 
 function render(){
 
-const filtro =
-document.getElementById('filtro').value.toLowerCase()
+ const lista=document.getElementById('lista')
+ lista.innerHTML=''
 
-const filtroStatus =
-document.getElementById('filtroStatus').value
+ document.getElementById('abertas').innerText=viagens.filter(v=>v.status==='ABERTA').length
+ document.getElementById('finalizadas').innerText=viagens.filter(v=>v.status==='FINALIZADA').length
+ document.getElementById('canceladas').innerText=viagens.filter(v=>v.status==='CANCELADA').length
 
-const filtroData =
-document.getElementById('filtroData').value
-
-const lista =
-document.getElementById('lista')
-
-lista.innerHTML=''
-
-document.getElementById('abertas').innerText =
-viagens.filter(v=>v.status==='ABERTA').length
-
-document.getElementById('finalizadas').innerText =
-viagens.filter(v=>v.status==='FINALIZADA').length
-
-document.getElementById('canceladas').innerText =
-viagens.filter(v=>v.status==='CANCELADA').length
-
-viagens
-.filter(v=>{
-
-const texto =
-(v.placa||'').toLowerCase().includes(filtro)
-||
-(v.motorista||'').toLowerCase().includes(filtro)
-
-const status =
-!filtroStatus || v.status===filtroStatus
-
-const dataViagem =
-v.created_at
-? v.created_at.substring(0,10)
-: ''
-
-const dataOk =
-!filtroData || dataViagem===filtroData
-
-return texto && status && dataOk
-
-})
-.forEach(v=>{
-
-lista.innerHTML += `
-<tr>
-<td>${v.numero}</td>
-<td>${v.placa}</td>
-<td>${v.motorista}</td>
-
-<td>
-<span class="status-${v.status.toLowerCase()}">
-${v.status}
-</span>
-
-<div class="data-info">Abertura: ${v.created_at||'-'}</div>
-<div class="data-info">Finalização: ${v.finalizado_em||'-'}</div>
-<div class="data-info">Cancelamento: ${v.cancelado_em||'-'}</div>
-</td>
-
-<td>
-${
-v.status==='ABERTA'
-?
-`<button class="btn-cte" onclick="abrir(${v.numero})">CT-es</button>`
-:
-`<button class="btn-pdf" onclick="abrirPdf(${v.numero})">PDF</button>`
-}
-</td>
-
-<td>
-${
-v.status==='ABERTA'
-?
-`<button class="btn-cancelar" onclick="cancelar('${v.id}')">Cancelar</button>`
-:
-v.status
-}
-</td>
-</tr>
-`
-})
+ viagens.forEach(v=>{
+   lista.innerHTML+=`
+   <tr>
+   <td>${v.numero}</td>
+   <td>${v.placa}</td>
+   <td>${v.motorista}</td>
+   <td>
+   <span class="status-${v.status.toLowerCase()}">${v.status}</span>
+   <div class="data-info">Abertura: ${v.created_at||'-'}</div>
+   <div class="data-info">Finalização: ${v.finalizado_em||'-'}</div>
+   </td>
+   <td>
+   ${
+     v.status==='ABERTA'
+     ?`<button class="btn-cte" onclick="abrir(${v.numero})">CT-es</button>`
+     :`<button class="btn-pdf" onclick="abrirPdf(${v.numero})">PDF</button>`
+   }
+   </td>
+   </tr>`
+ })
 }
 
 async function abrir(numero){
-
-viagemAtual =
-viagens.find(v=>v.numero===numero)
-
-if(!viagemAtual) return
-
-document.getElementById('modal')
-.classList.remove('hidden')
-
-document.getElementById('tituloViagem')
-.innerText='Viagem #'+viagemAtual.numero
-
-renderDocs()
+ viagemAtual=viagens.find(v=>v.numero===numero)
+ document.getElementById('modal').classList.remove('hidden')
+ document.getElementById('tituloViagem').innerText='Viagem #'+numero
+ renderDocs()
 }
 
 function fechar(){
-document.getElementById('modal')
-.classList.add('hidden')
+ document.getElementById('modal').classList.add('hidden')
 }
 
 async function scanner(e){
 
-if(e.key!=='Enter') return
+ if(e.key!=='Enter') return
 
-const chave =
-document.getElementById('scanner').value.trim()
+ const chave=document.getElementById('scanner').value.trim()
 
-if(chave.length!==44){
-Swal.fire('Chave inválida')
-return
-}
+ const numero=normalizarNumero(chave.substring(25,34))
 
-await client
-.from('documentos')
-.insert([{
-viagem_id:viagemAtual.id,
-chave_cte:chave,
-numero_cte:chave.substring(25,34),
-emitente:'Consulta Gratuita',
-cidade:'Marília/SP',
-status_entrega:'EM ROTA',
-data_saida:agoraBrasil()
-}])
+ await client.from('documentos').insert([{
+   viagem_id:viagemAtual.id,
+   chave_cte:chave,
+   numero_cte:numero,
+   status_entrega:'EM ROTA',
+   data_saida:agoraBrasil()
+ }])
 
-document.getElementById('scanner').value=''
-
-Swal.fire('CT-e lançado')
-
-renderDocs()
+ document.getElementById('scanner').value=''
+ renderDocs()
 }
 
 async function renderDocs(){
 
-const { data: docs } =
-await client
-.from('documentos')
-.select('*')
-.eq('viagem_id',viagemAtual.id)
+ const {data:docs}=await client.from('documentos').select('*').eq('viagem_id',viagemAtual.id)
 
-const tbody =
-document.getElementById('docs')
+ const tbody=document.getElementById('docs')
+ tbody.innerHTML=''
 
-tbody.innerHTML=''
-
-docs.forEach(d=>{
-
-tbody.innerHTML += `
-<tr>
-<td>${d.numero_cte}</td>
-<td>${d.emitente}</td>
-<td>${d.cidade}</td>
-<td>
-<button class="btn-cancelar"
-onclick="remover('${d.id}')">
-Remover
-</button>
-</td>
-</tr>
-`
-})
+ docs.forEach(d=>{
+   tbody.innerHTML+=`
+   <tr>
+   <td>${d.numero_cte}</td>
+   <td>${d.data_saida||'-'}</td>
+   <td>${d.status_entrega||'-'}</td>
+   <td><button class="btn-cancelar" onclick="remover('${d.id}')">Remover</button></td>
+   </tr>`
+ })
 }
 
 async function remover(id){
-
-await client
-.from('documentos')
-.delete()
-.eq('id',id)
-
-renderDocs()
-}
-
-async function cancelar(id){
-
-await client
-.from('viagens')
-.update({
-status:'CANCELADA',
-cancelado_em:agoraBrasil()
-})
-.eq('id',id)
-
-carregar()
+ await client.from('documentos').delete().eq('id',id)
+ renderDocs()
 }
 
 async function finalizar(){
+ await client.from('viagens').update({
+   status:'FINALIZADA',
+   finalizado_em:agoraBrasil()
+ }).eq('id',viagemAtual.id)
 
-await client
-.from('viagens')
-.update({
-status:'FINALIZADA',
-finalizado_em:agoraBrasil()
-})
-.eq('id',viagemAtual.id)
-
-fechar()
-carregar()
+ fechar()
+ carregar()
 }
 
 async function abrirPdf(numero){
-
-viagemAtual =
-viagens.find(v=>v.numero===numero)
-
-pdf()
+ viagemAtual=viagens.find(v=>v.numero===numero)
+ pdf()
 }
 
 async function pdf(){
 
-const { jsPDF } = window.jspdf
-const doc = new jsPDF()
+ const {jsPDF}=window.jspdf
+ const doc=new jsPDF()
 
-doc.setFontSize(20)
-doc.text('ROMANEIO',20,20)
+ doc.text('ROMANEIO',20,20)
+ doc.text('Viagem '+viagemAtual.numero,20,40)
 
-doc.setFontSize(12)
-doc.text('Viagem: '+viagemAtual.numero,20,40)
-doc.text('Placa: '+viagemAtual.placa,20,50)
-doc.text('Motorista: '+viagemAtual.motorista,20,60)
+ const {data:docs}=await client.from('documentos').select('*').eq('viagem_id',viagemAtual.id)
 
-const { data: docs } =
-await client
-.from('documentos')
-.select('*')
-.eq('viagem_id',viagemAtual.id)
+ let y=60
+ docs.forEach(d=>{
+   doc.text(d.numero_cte,20,y)
+   y+=10
+ })
 
-let y=90
+ doc.save(`ROMANEIO-${viagemAtual.numero}.pdf`)
+}
 
-docs.forEach((d,index)=>{
-doc.text(`${index+1} - ${d.numero_cte}`,20,y)
-y+=10
-})
+async function atualizarDashboardBaixa(){
 
-doc.save(`ROMANEIO-${viagemAtual.numero}.pdf`)
+ const {data:docs}=await client.from('documentos').select('*')
+
+ const pendentes=docs.filter(d=>d.status_entrega!=='ENTREGUE').length
+ const entreguesHoje=docs.filter(d=>(d.data_baixa||'').startsWith(new Date().toLocaleDateString('sv-SE'))).length
+ const totalMes=docs.length
+
+ document.getElementById('pendentesTotal').innerText=pendentes
+ document.getElementById('entreguesHoje').innerText=entreguesHoje
+ document.getElementById('totalMes').innerText=totalMes
 }
 
 async function listarPendentes(){
 
-const placa =
-document.getElementById('placaBaixa').value
+ const placa=document.getElementById('placaBaixa').value
 
-const viagem =
-viagens.find(v=>v.placa===placa)
+ const viagem=viagens.find(v=>v.placa===placa)
 
-if(!viagem) return
+ if(!viagem)return
 
-const { data: docs } =
-await client
-.from('documentos')
-.select('*')
-.eq('viagem_id',viagem.id)
+ const {data:docs}=await client.from('documentos').select('*').eq('viagem_id',viagem.id)
 
-let html=''
+ const div=document.getElementById('listaPendentes')
+ div.innerHTML=''
 
-docs.forEach(d=>{
+ docs.filter(d=>d.status_entrega!=='ENTREGUE').forEach(d=>{
+   div.innerHTML+=`
+   <div class="card">
+   <p><b>CT-e:</b> ${d.numero_cte}</p>
+   <p><b>Saída:</b> ${d.data_saida||'-'}</p>
 
-if(d.status_entrega==='ENTREGUE') return
+   <input id="rec-${d.id}" placeholder="Recebedor">
+   <input id="doc-${d.id}" placeholder="Documento">
 
-html += `
-<div class="card">
-<p><b>CT-e:</b> ${d.numero_cte}</p>
-<p>Saída: ${d.data_saida||'-'}</p>
-
-<input id="rec-${d.id}" placeholder="Nome recebedor">
-<input id="doc-${d.id}" placeholder="Documento">
-
-<button class="btn-finalizar"
-onclick="registrarBaixa('${d.id}')">
-Registrar Baixa
-</button>
-</div>
-`
-})
-
-document.getElementById('listaPendentes').innerHTML=html
+   <button class="btn-finalizar" onclick="registrarBaixa('${d.id}')">
+   Registrar Baixa
+   </button>
+   </div>`
+ })
 }
 
 async function registrarBaixa(id){
 
-const recebedor =
-document.getElementById(`rec-${id}`).value
+ const recebedor=document.getElementById(`rec-${id}`).value
+ const documento=document.getElementById(`doc-${id}`).value
 
-const documento =
-document.getElementById(`doc-${id}`).value
+ await client.from('documentos').update({
+   status_entrega:'ENTREGUE',
+   data_baixa:agoraBrasil(),
+   recebedor,
+   documento_recebedor:documento
+ }).eq('id',id)
 
-await client
-.from('documentos')
-.update({
-status_entrega:'ENTREGUE',
-data_baixa:agoraBrasil(),
-recebedor,
-documento_recebedor:documento
-})
-.eq('id',id)
+ Swal.fire('Baixa registrada')
 
-Swal.fire('Baixa registrada')
-
-listarPendentes()
+ listarPendentes()
+ atualizarDashboardBaixa()
 }
 
 async function rastrearCte(){
 
-const numero =
-document.getElementById('buscarCte').value
+ const numero=normalizarNumero(document.getElementById('buscarCte').value)
 
-const { data } =
-await client
-.from('documentos')
-.select('*')
-.eq('numero_cte',numero)
+ const {data}=await client.from('documentos').select('*')
 
-const div =
-document.getElementById('resultadoRastreio')
+ const cte=data.find(d=>normalizarNumero(d.numero_cte)===numero)
 
-if(!data.length){
-div.innerHTML='CT-e não encontrado'
-return
+ const div=document.getElementById('resultadoRastreio')
+
+ if(!cte){
+   div.innerHTML='CT-e não encontrado'
+   return
+ }
+
+ const viagem=viagens.find(v=>v.id===cte.viagem_id)
+
+ div.innerHTML=`
+ <div class="card">
+ <h3>CT-e ${cte.numero_cte}</h3>
+ <p><b>Status:</b> ${cte.status_entrega}</p>
+ <p><b>Saída:</b> ${cte.data_saida||'-'}</p>
+ <p><b>Baixa:</b> ${cte.data_baixa||'-'}</p>
+ <p><b>Placa:</b> ${viagem?.placa||'-'}</p>
+ <p><b>Motorista:</b> ${viagem?.motorista||'-'}</p>
+ <p><b>Recebedor:</b> ${cte.recebedor||'-'}</p>
+ </div>`
 }
 
-const cte = data[0]
+document.addEventListener('DOMContentLoaded',()=>{
 
-div.innerHTML=`
-<div class="card">
-<p><b>CT-e:</b> ${cte.numero_cte}</p>
-<p><b>Status:</b> ${cte.status_entrega}</p>
-<p><b>Saída:</b> ${cte.data_saida||'-'}</p>
-<p><b>Baixa:</b> ${cte.data_baixa||'-'}</p>
-<p><b>Recebedor:</b> ${cte.recebedor||'-'}</p>
-</div>
-`
-}
+ document.getElementById('buscarCte')?.addEventListener('keypress',e=>{
+   if(e.key==='Enter') rastrearCte()
+ })
 
-carregar()
+ carregar()
+})

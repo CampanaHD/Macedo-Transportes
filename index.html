@@ -15,123 +15,167 @@
 <body>
 
 <div class="topbar">
-<h1>🚚 Macedo Transportes</h1>
+    <h1>🚚 Macedo Transportes</h1>
 
-<div class="navbar">
-<button onclick="mostrarTela('expedicao')">Expedição</button>
-<button onclick="mostrarTela('rastreio')">Rastreio</button>
-<button onclick="mostrarTela('baixa')">Baixa</button>
-</div>
+    <div class="navbar">
+        <button onclick="mostrarTela('expedicao')">Expedição</button>
+        <button onclick="mostrarTela('rastreio')">Rastreio</button>
+        <button onclick="mostrarTela('baixa')">Baixa</button>
+    </div>
 </div>
 
 <!-- EXPEDIÇÃO -->
 <div id="expedicaoTela" class="container">
 
-<div class="dashboard">
-<div class="card-mini"><h2 id="abertas">0</h2><span>Abertas</span></div>
-<div class="card-mini"><h2 id="finalizadas">0</h2><span>Finalizadas</span></div>
-<div class="card-mini"><h2 id="canceladas">0</h2><span>Canceladas</span></div>
-</div>
+    <div class="dashboard">
+        <div class="card-mini">
+            <h2 id="abertas">0</h2>
+            <span>Abertas</span>
+        </div>
 
-<div class="card">
-<h2>Nova Viagem</h2>
+        <div class="card-mini">
+            <h2 id="finalizadas">0</h2>
+            <span>Finalizadas</span>
+        </div>
 
-<div class="grid">
-<select id="placa"></select>
-<select id="motorista"></select>
-<button class="btn-gerar" onclick="criarViagem()">Gerar Viagem</button>
-</div>
-</div>
+        <div class="card-mini">
+            <h2 id="canceladas">0</h2>
+            <span>Canceladas</span>
+        </div>
+    </div>
 
-<div class="card">
-<h2>Histórico</h2>
+    <div class="card">
+        <h2>Nova Viagem</h2>
 
-<div class="filtros">
-<input id="filtro" placeholder="Buscar placa ou motorista" onkeyup="render()"/>
-<select id="filtroStatus" onchange="render()">
-<option value="">Todos status</option>
-<option value="ABERTA">Abertas</option>
-<option value="FINALIZADA">Finalizadas</option>
-<option value="CANCELADA">Canceladas</option>
-</select>
-<input type="date" id="filtroData" onchange="render()"/>
-</div>
+        <div class="grid">
+            <select id="placa"></select>
+            <select id="motorista"></select>
+            <button class="btn-gerar" onclick="criarViagem()">Gerar Viagem</button>
+        </div>
+    </div>
 
-<table>
-<thead>
-<tr>
-<th>Nº</th>
-<th>Placa</th>
-<th>Motorista</th>
-<th>Status</th>
-<th>Documentos</th>
-<th>Ações</th>
-</tr>
-</thead>
-<tbody id="lista"></tbody>
-</table>
-</div>
+    <div class="card">
+        <h2>Histórico</h2>
+
+        <div class="filtros">
+            <input id="filtro" placeholder="Buscar placa ou motorista" onkeyup="render()">
+
+            <select id="filtroStatus" onchange="render()">
+                <option value="">Todos status</option>
+                <option value="ABERTA">Abertas</option>
+                <option value="FINALIZADA">Finalizadas</option>
+                <option value="CANCELADA">Canceladas</option>
+            </select>
+
+            <input type="date" id="filtroData" onchange="render()">
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Nº</th>
+                    <th>Placa</th>
+                    <th>Motorista</th>
+                    <th>Status</th>
+                    <th>Documentos</th>
+                </tr>
+            </thead>
+
+            <tbody id="lista"></tbody>
+        </table>
+    </div>
+
 </div>
 
 <!-- RASTREIO -->
 <div id="rastreioTela" class="container hidden">
-<div class="card">
-<h2>Rastreio de CT-e</h2>
 
-<input id="buscarCte" placeholder="Digite número do CT-e">
-<button class="btn-gerar" onclick="rastrearCte()">Buscar</button>
+    <div class="card">
+        <h2>Rastreio de CT-e</h2>
 
-<div id="resultadoRastreio"></div>
-</div>
+        <div class="grid">
+            <input id="buscarCte" placeholder="Digite número do CT-e">
+            <button class="btn-gerar" onclick="rastrearCte()">Buscar</button>
+        </div>
+
+        <div id="resultadoRastreio"></div>
+    </div>
+
 </div>
 
 <!-- BAIXA -->
 <div id="baixaTela" class="container hidden">
-<div class="card">
-<h2>Baixa de Entregas</h2>
 
-<select id="placaBaixa" onchange="listarPendentes()"></select>
+    <div class="dashboard">
+        <div class="card-mini">
+            <h2 id="pendentesTotal">0</h2>
+            <span>Pendentes</span>
+        </div>
 
-<div id="listaPendentes"></div>
-</div>
+        <div class="card-mini">
+            <h2 id="entreguesHoje">0</h2>
+            <span>Entregues Hoje</span>
+        </div>
+
+        <div class="card-mini">
+            <h2 id="totalMes">0</h2>
+            <span>Total do Mês</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Baixa de Entregas</h2>
+
+        <select id="placaBaixa" onchange="listarPendentes()"></select>
+
+        <div id="listaPendentes"></div>
+    </div>
+
 </div>
 
 <!-- MODAL -->
 <div id="modal" class="modal hidden">
-<div class="modal-content">
 
-<div class="modal-header">
-<h2 id="tituloViagem"></h2>
-<button class="btn-fechar" onclick="fechar()">X</button>
-</div>
+    <div class="modal-content">
 
-<input id="scanner" placeholder="BIPAR CT-e" onkeypress="scanner(event)"/>
+        <div class="modal-header">
+            <h2 id="tituloViagem"></h2>
+            <button class="btn-fechar" onclick="fechar()">X</button>
+        </div>
 
-<table>
-<thead>
-<tr>
-<th>CT-e</th>
-<th>Emitente</th>
-<th>Cidade</th>
-<th>Ações</th>
-</tr>
-</thead>
-<tbody id="docs"></tbody>
-</table>
+        <input
+            id="scanner"
+            placeholder="BIPAR CT-e"
+            onkeypress="scanner(event)"
+        >
 
-<div class="actions">
-<button class="btn-finalizar" onclick="finalizar()">Finalizar Viagem</button>
-<button class="btn-pdf" onclick="pdf()">Gerar PDF</button>
-</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>CT-e</th>
+                    <th>Saída</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
 
-</div>
+            <tbody id="docs"></tbody>
+        </table>
+
+        <div class="actions">
+            <button class="btn-finalizar" onclick="finalizar()">Finalizar Viagem</button>
+            <button class="btn-pdf" onclick="pdf()">Gerar PDF</button>
+        </div>
+
+    </div>
+
 </div>
 
 <div class="footer">
-<p>Desenvolvido por Gabriel Campana</p>
+    <p>Desenvolvido por Gabriel Campana</p>
 </div>
 
-<script src="app.js?v=200"></script>
+<script src="app.js?v=600"></script>
 
 </body>
 </html>
