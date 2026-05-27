@@ -13,7 +13,6 @@ function agoraBrasil(){
 }
 
 function setTransportadora(tipo){
-
  transportadoraSelecionada=tipo
 
  document.getElementById('btnMacedo').classList.remove('ativo')
@@ -27,7 +26,6 @@ function setTransportadora(tipo){
 }
 
 function mostrarTela(tela){
-
  document.querySelectorAll('[id$="Tela"]').forEach(el=>el.classList.add('hidden'))
  document.getElementById(tela+'Tela').classList.remove('hidden')
 
@@ -47,7 +45,6 @@ async function carregar(){
  viagens=viagensData||[]
 
  carregarSelects(motoristas,veiculos)
-
  render()
  atualizarDashboardBaixa()
 }
@@ -102,7 +99,6 @@ async function criarViagem(){
  }])
 
  Swal.fire('Viagem criada')
-
  carregar()
 }
 
@@ -136,8 +132,26 @@ function render(){
     :`<button class="btn-pdf" onclick="abrirPdf(${v.numero})">PDF</button>`
    }
    </td>
+   <td>
+   ${
+    v.status==='ABERTA'
+    ?`<button class="btn-cancelar" onclick="cancelar('${v.id}')">Cancelar</button>`
+    :v.status
+   }
+   </td>
    </tr>`
  })
+}
+
+async function cancelar(id){
+
+ await client.from('viagens').update({
+  status:'CANCELADA',
+  cancelado_em:agoraBrasil()
+ }).eq('id',id)
+
+ Swal.fire('Viagem cancelada')
+ carregar()
 }
 
 async function abrir(numero){
@@ -162,7 +176,18 @@ async function inserirManual(){
 
  const numero=normalizarNumero(chave.substring(25,34))
 
- await client.from('documentos').insert([{
+ const {data:existente}=await client
+ .from('documentos')
+ .select('*')
+ .eq('chave_cte',chave)
+ .maybeSingle()
+
+ if(existente){
+  Swal.fire('Este CT-e já foi inserido')
+  return
+ }
+
+ const {error}=await client.from('documentos').insert([{
   viagem_id:viagemAtual.id,
   chave_cte:chave,
   numero_cte:numero,
@@ -170,17 +195,19 @@ async function inserirManual(){
   data_saida:agoraBrasil()
  }])
 
+ if(error){
+  Swal.fire(error.message)
+  return
+ }
+
  document.getElementById('scanner').value=''
+ await renderDocs()
 
- Swal.fire('CT-e inserido')
-
- renderDocs()
+ Swal.fire('CT-e inserido com sucesso')
 }
 
 async function scanner(e){
-
  if(e.key!=='Enter') return
-
  await inserirManual()
 }
 
@@ -247,22 +274,11 @@ async function pdf(){
  doc.text('ROMANEIO DE VIAGEM',20,20)
 
  doc.setFontSize(14)
- doc.text(
-  empresa==='MACEDO'
-  ?'MACEDO TRANSPORTES'
-  :'PANTANAL TRANSPORTES',
-  20,32
- )
-
- doc.line(20,36,190,36)
-
- doc.text(`Viagem: ${viagemAtual.numero}`,20,50)
- doc.text(`Placa: ${viagemAtual.placa}`,20,60)
- doc.text(`Motorista: ${viagemAtual.motorista}`,20,70)
+ doc.text(empresa==='MACEDO'?'MACEDO TRANSPORTES':'PANTANAL TRANSPORTES',20,32)
 
  const {data:docs}=await client.from('documentos').select('*').eq('viagem_id',viagemAtual.id)
 
- let y=95
+ let y=60
 
  docs.forEach((d,index)=>{
   doc.text(`${index+1}. CT-e ${d.numero_cte}`,20,y)
@@ -276,62 +292,38 @@ async function atualizarDashboardBaixa(){
 
  const {data:docs}=await client.from('documentos').select('*')
 
- const pendentes=docs.filter(d=>d.status_entrega!=='ENTREGUE').length
- const entreguesHoje=docs.filter(d=>(d.data_baixa||'').startsWith(new Date().toLocaleDateString('sv-SE'))).length
- const totalMes=docs.length
-
- document.getElementById('pendentesTotal').innerText=pendentes
- document.getElementById('entreguesHoje').innerText=entreguesHoje
- document.getElementById('totalMes').innerText=totalMes
+ document.getElementById('pendentesTotal').innerText=docs.filter(d=>d.status_entrega!=='ENTREGUE').length
+ document.getElementById('entreguesHoje').innerText=docs.filter(d=>(d.data_baixa||'').startsWith(new Date().toLocaleDateString('sv-SE'))).length
+ document.getElementById('totalMes').innerText=docs.length
 }
 
 async function listarPendentes(){
 
  const placa=document.getElementById('placaBaixa').value
+ if(!placa)return
 
- if(!placa) return
-
- const viagensPlaca = viagens.filter(
-   v => v.placa === placa && v.status === 'FINALIZADA'
- )
+ const viagensPlaca=viagens.filter(v=>v.placa===placa&&v.status==='FINALIZADA')
 
  const div=document.getElementById('listaPendentes')
  div.innerHTML=''
 
- if(!viagensPlaca.length){
-   div.innerHTML='<p>Nenhuma viagem encontrada.</p>'
-   return
- }
-
  for(const viagem of viagensPlaca){
 
-   const {data:docs}=await client
-     .from('documentos')
-     .select('*')
-     .eq('viagem_id',viagem.id)
+  const {data:docs}=await client.from('documentos').select('*').eq('viagem_id',viagem.id)
 
-   docs
-   .filter(d=>d.status_entrega!=='ENTREGUE')
-   .forEach(d=>{
+  docs.filter(d=>d.status_entrega!=='ENTREGUE').forEach(d=>{
+   div.innerHTML+=`
+   <div class="card">
+   <p><b>CT-e:</b> ${d.numero_cte}</p>
 
-     div.innerHTML+=`
-     <div class="card">
-       <p><b>Transportadora:</b> ${viagem.transportadora || 'MACEDO'}</p>
-       <p><b>CT-e:</b> ${d.numero_cte}</p>
-       <p><b>Saída:</b> ${d.data_saida||'-'}</p>
+   <input id="rec-${d.id}" placeholder="Recebedor">
+   <input id="doc-${d.id}" placeholder="Documento">
 
-       <input id="rec-${d.id}" placeholder="Recebedor">
-       <input id="doc-${d.id}" placeholder="Documento">
-
-       <button class="btn-finalizar" onclick="registrarBaixa('${d.id}')">
-         Registrar Baixa
-       </button>
-     </div>`
-   })
- }
-
- if(div.innerHTML===''){
-   div.innerHTML='<p>Sem CT-es pendentes.</p>'
+   <button class="btn-finalizar" onclick="registrarBaixa('${d.id}')">
+   Registrar Baixa
+   </button>
+   </div>`
+  })
  }
 }
 
@@ -355,52 +347,37 @@ async function registrarBaixa(id){
 
 async function rastrearCte(){
 
- const numeroDigitado = document
-   .getElementById('buscarCte')
-   .value
-   .trim()
+ const numeroBusca=normalizarNumero(document.getElementById('buscarCte').value.trim())
 
- const numeroBusca = normalizarNumero(numeroDigitado)
+ const {data}=await client.from('documentos').select(`
+  *,
+  viagens(
+   placa,
+   motorista,
+   transportadora
+  )
+ `)
 
- const { data, error } = await client
-   .from('documentos')
-   .select(`
-     *,
-     viagens (
-       placa,
-       motorista,
-       transportadora
-     )
-   `)
+ const encontrado=data.find(d=>normalizarNumero(d.numero_cte)===numeroBusca)
 
  const div=document.getElementById('resultadoRastreio')
 
- if(error){
-   div.innerHTML='<p>Erro ao consultar rastreio</p>'
-   return
- }
-
- const encontrado = data.find(
-   d => normalizarNumero(d.numero_cte) === numeroBusca
- )
-
  if(!encontrado){
-   div.innerHTML='<p>CT-e não encontrado</p>'
-   return
+  div.innerHTML='<p>CT-e não encontrado</p>'
+  return
  }
 
  div.innerHTML=`
-   <div class="card">
-     <h3>CT-e ${parseInt(encontrado.numero_cte)}</h3>
-
-     <p><b>Transportadora:</b> ${encontrado.viagens?.transportadora || '-'}</p>
-     <p><b>Placa:</b> ${encontrado.viagens?.placa || '-'}</p>
-     <p><b>Motorista:</b> ${encontrado.viagens?.motorista || '-'}</p>
-     <p><b>Status:</b> ${encontrado.status_entrega || 'EM ROTA'}</p>
-     <p><b>Saída:</b> ${encontrado.data_saida || '-'}</p>
-     <p><b>Baixa:</b> ${encontrado.data_baixa || '-'}</p>
-     <p><b>Recebedor:</b> ${encontrado.recebedor || '-'}</p>
-   </div>`
+ <div class="card">
+ <h3>CT-e ${parseInt(encontrado.numero_cte)}</h3>
+ <p><b>Transportadora:</b> ${encontrado.viagens?.transportadora||'-'}</p>
+ <p><b>Placa:</b> ${encontrado.viagens?.placa||'-'}</p>
+ <p><b>Motorista:</b> ${encontrado.viagens?.motorista||'-'}</p>
+ <p><b>Status:</b> ${encontrado.status_entrega||'EM ROTA'}</p>
+ <p><b>Saída:</b> ${encontrado.data_saida||'-'}</p>
+ <p><b>Baixa:</b> ${encontrado.data_baixa||'-'}</p>
+ <p><b>Recebedor:</b> ${encontrado.recebedor||'-'}</p>
+ </div>`
 }
 
 document.addEventListener('DOMContentLoaded',()=>{

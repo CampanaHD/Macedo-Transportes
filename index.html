@@ -81,6 +81,7 @@
                     <th>Motorista</th>
                     <th>Status</th>
                     <th>Documentos</th>
+                    <th>Ações</th>
                 </tr>
             </thead>
 
@@ -140,9 +141,11 @@
         </div>
 
         <div class="grid">
-            <input id="scanner"
-                placeholder="BIPAR / DIGITAR chave CT-e"
-                onkeypress="scanner(event)">
+            <input
+    id="scanner"
+    placeholder="Digite/Bipe a chave CT-e"
+    onkeypress="if(event.key==='Enter')inserirManual()"
+>
 
             <button class="btn-cte" onclick="inserirManual()">
                 Inserir
