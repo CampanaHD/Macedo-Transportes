@@ -24,7 +24,6 @@
     </div>
 </div>
 
-<!-- EXPEDIÇÃO -->
 <div id="expedicaoTela" class="container">
 
     <div class="dashboard">
@@ -45,53 +44,34 @@
     </div>
 
     <div class="card">
-        <div class="card">
-    <h2>Nova Viagem</h2>
+        <h2>Nova Viagem</h2>
 
-    <div class="transportadoras">
+        <div class="transportadoras">
+            <button class="btn-transp btn-macedo ativo"
+                onclick="setTransportadora('MACEDO')"
+                id="btnMacedo">
+                🚚 Macedo Transportes
+            </button>
 
-    <button
-        class="btn-transp btn-macedo ativo"
-        onclick="setTransportadora('MACEDO')"
-        id="btnMacedo">
-        🚚 Macedo Transportes
-    </button>
+            <button class="btn-transp btn-pantanal"
+                onclick="setTransportadora('PANTANAL')"
+                id="btnPantanal">
+                🌿 Pantanal Transportes
+            </button>
+        </div>
 
-    <button
-        class="btn-transp btn-pantanal"
-        onclick="setTransportadora('PANTANAL')"
-        id="btnPantanal">
-        🌿 Pantanal Transportes
-    </button>
+        <div class="grid">
+            <select id="placa"></select>
+            <select id="motorista"></select>
 
-</div>
-
-    <div class="grid">
-        <select id="placa"></select>
-        <select id="motorista"></select>
-
-        <button class="btn-gerar" onclick="criarViagem()">
-            Gerar Viagem
-        </button>
-    </div>
-</div>
+            <button class="btn-gerar" onclick="criarViagem()">
+                Gerar Viagem
+            </button>
+        </div>
     </div>
 
     <div class="card">
         <h2>Histórico</h2>
-
-        <div class="filtros">
-            <input id="filtro" placeholder="Buscar placa ou motorista" onkeyup="render()">
-
-            <select id="filtroStatus" onchange="render()">
-                <option value="">Todos status</option>
-                <option value="ABERTA">Abertas</option>
-                <option value="FINALIZADA">Finalizadas</option>
-                <option value="CANCELADA">Canceladas</option>
-            </select>
-
-            <input type="date" id="filtroData" onchange="render()">
-        </div>
 
         <table>
             <thead>
@@ -110,9 +90,7 @@
 
 </div>
 
-<!-- RASTREIO -->
 <div id="rastreioTela" class="container hidden">
-
     <div class="card">
         <h2>Rastreio de CT-e</h2>
 
@@ -123,10 +101,8 @@
 
         <div id="resultadoRastreio"></div>
     </div>
-
 </div>
 
-<!-- BAIXA -->
 <div id="baixaTela" class="container hidden">
 
     <div class="dashboard">
@@ -148,15 +124,12 @@
 
     <div class="card">
         <h2>Baixa de Entregas</h2>
-
         <select id="placaBaixa" onchange="listarPendentes()"></select>
-
         <div id="listaPendentes"></div>
     </div>
 
 </div>
 
-<!-- MODAL -->
 <div id="modal" class="modal hidden">
 
     <div class="modal-content">
@@ -166,11 +139,15 @@
             <button class="btn-fechar" onclick="fechar()">X</button>
         </div>
 
-        <input
-            id="scanner"
-            placeholder="BIPAR CT-e"
-            onkeypress="scanner(event)"
-        >
+        <div class="grid">
+            <input id="scanner"
+                placeholder="BIPAR / DIGITAR chave CT-e"
+                onkeypress="scanner(event)">
+
+            <button class="btn-cte" onclick="inserirManual()">
+                Inserir
+            </button>
+        </div>
 
         <table>
             <thead>
@@ -191,14 +168,13 @@
         </div>
 
     </div>
-
 </div>
 
 <div class="footer">
     <p>Desenvolvido por Gabriel Campana</p>
 </div>
 
-<script src="app.js?v=600"></script>
+<script src="app.js?v=800"></script>
 
 </body>
 </html>

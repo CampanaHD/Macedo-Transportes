@@ -5,8 +5,7 @@ const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
 
 let viagens=[]
 let viagemAtual=null
-
-let transportadoraSelecionada = 'MACEDO'
+let transportadoraSelecionada='MACEDO'
 
 function agoraBrasil(){
  const agora=new Date()
@@ -15,28 +14,20 @@ function agoraBrasil(){
 
 function setTransportadora(tipo){
 
-    transportadoraSelecionada = tipo
+ transportadoraSelecionada=tipo
 
-    document
-        .getElementById('btnMacedo')
-        .classList.remove('ativo')
+ document.getElementById('btnMacedo').classList.remove('ativo')
+ document.getElementById('btnPantanal').classList.remove('ativo')
 
-    document
-        .getElementById('btnPantanal')
-        .classList.remove('ativo')
-
-    if(tipo === 'MACEDO'){
-        document
-            .getElementById('btnMacedo')
-            .classList.add('ativo')
-    }else{
-        document
-            .getElementById('btnPantanal')
-            .classList.add('ativo')
-    }
+ if(tipo==='MACEDO'){
+  document.getElementById('btnMacedo').classList.add('ativo')
+ }else{
+  document.getElementById('btnPantanal').classList.add('ativo')
+ }
 }
 
 function mostrarTela(tela){
+
  document.querySelectorAll('[id$="Tela"]').forEach(el=>el.classList.add('hidden'))
  document.getElementById(tela+'Tela').classList.remove('hidden')
 
@@ -44,7 +35,7 @@ function mostrarTela(tela){
 }
 
 function normalizarNumero(numero){
- return String(numero).replace(/^0+/,'')
+ return String(numero||'').replace(/^0+/,'')
 }
 
 async function carregar(){
@@ -67,56 +58,52 @@ function carregarSelects(motoristas,veiculos){
  document.getElementById('placaBaixa').innerHTML='<option>Selecione placa</option>'
 
  veiculos.forEach(v=>{
-   document.getElementById('placa').innerHTML+=`<option value="${v.placa}">${v.placa}</option>`
+  document.getElementById('placa').innerHTML+=`<option value="${v.placa}">${v.placa}</option>`
  })
 
  const placas=[...new Set(
-   viagens
-   .filter(v=>v.status==='FINALIZADA')
-   .map(v=>v.placa)
+  viagens.filter(v=>v.status==='FINALIZADA').map(v=>v.placa)
  )]
 
  placas.forEach(p=>{
-   document.getElementById('placaBaixa').innerHTML+=`<option value="${p}">${p}</option>`
+  document.getElementById('placaBaixa').innerHTML+=`<option value="${p}">${p}</option>`
  })
 
  document.getElementById('motorista').innerHTML='<option>Selecione motorista</option>'
 
  motoristas.forEach(m=>{
-   document.getElementById('motorista').innerHTML+=`<option value="${m.cpf}">${m.nome}</option>`
+  document.getElementById('motorista').innerHTML+=`<option value="${m.cpf}">${m.nome}</option>`
  })
 }
 
 async function criarViagem(){
 
-    const placa = document.getElementById('placa').value
-    const cpf = document.getElementById('motorista').value
+ const placa=document.getElementById('placa').value
+ const cpf=document.getElementById('motorista').value
 
-    if(placa==='Selecione placa' || cpf==='Selecione motorista'){
-        Swal.fire('Preencha os campos')
-        return
-    }
+ if(placa==='Selecione placa'||cpf==='Selecione motorista'){
+  Swal.fire('Preencha os campos')
+  return
+ }
 
-    const { data:motorista } = await client
-        .from('motoristas')
-        .select('*')
-        .eq('cpf',cpf)
-        .single()
+ const {data:motorista}=await client
+ .from('motoristas')
+ .select('*')
+ .eq('cpf',cpf)
+ .single()
 
-    await client
-        .from('viagens')
-        .insert([{
-            placa,
-            motorista:motorista.nome,
-            cpf_motorista:cpf,
-            transportadora:transportadoraSelecionada,
-            status:'ABERTA',
-            created_at:agoraBrasil()
-        }])
+ await client.from('viagens').insert([{
+  placa,
+  motorista:motorista.nome,
+  cpf_motorista:cpf,
+  transportadora:transportadoraSelecionada,
+  status:'ABERTA',
+  created_at:agoraBrasil()
+ }])
 
-    Swal.fire('Viagem criada')
+ Swal.fire('Viagem criada')
 
-    carregar()
+ carregar()
 }
 
 function render(){
@@ -129,24 +116,24 @@ function render(){
  document.getElementById('canceladas').innerText=viagens.filter(v=>v.status==='CANCELADA').length
 
  viagens.forEach(v=>{
-   lista.innerHTML+=`
+  lista.innerHTML+=`
    <tr>
    <td>${v.numero}</td>
    <td>
     ${v.placa}
-    <div class="data-info">${v.transportadora || 'MACEDO'}</div>
+    <div class="data-info">${v.transportadora||'MACEDO'}</div>
    </td>
    <td>${v.motorista}</td>
    <td>
-   <span class="status-${v.status.toLowerCase()}">${v.status}</span>
-   <div class="data-info">Abertura: ${v.created_at||'-'}</div>
-   <div class="data-info">Finalização: ${v.finalizado_em||'-'}</div>
+    <span class="status-${v.status.toLowerCase()}">${v.status}</span>
+    <div class="data-info">Abertura: ${v.created_at||'-'}</div>
+    <div class="data-info">Finalização: ${v.finalizado_em||'-'}</div>
    </td>
    <td>
    ${
-     v.status==='ABERTA'
-     ?`<button class="btn-cte" onclick="abrir(${v.numero})">CT-es</button>`
-     :`<button class="btn-pdf" onclick="abrirPdf(${v.numero})">PDF</button>`
+    v.status==='ABERTA'
+    ?`<button class="btn-cte" onclick="abrir(${v.numero})">CT-es</button>`
+    :`<button class="btn-pdf" onclick="abrirPdf(${v.numero})">PDF</button>`
    }
    </td>
    </tr>`
@@ -164,35 +151,51 @@ function fechar(){
  document.getElementById('modal').classList.add('hidden')
 }
 
-async function scanner(e){
-
- if(e.key!=='Enter') return
+async function inserirManual(){
 
  const chave=document.getElementById('scanner').value.trim()
+
+ if(!chave){
+  Swal.fire('Digite a chave')
+  return
+ }
 
  const numero=normalizarNumero(chave.substring(25,34))
 
  await client.from('documentos').insert([{
-   viagem_id:viagemAtual.id,
-   chave_cte:chave,
-   numero_cte:numero,
-   status_entrega:'EM ROTA',
-   data_saida:agoraBrasil()
+  viagem_id:viagemAtual.id,
+  chave_cte:chave,
+  numero_cte:numero,
+  status_entrega:'EM ROTA',
+  data_saida:agoraBrasil()
  }])
 
  document.getElementById('scanner').value=''
+
+ Swal.fire('CT-e inserido')
+
  renderDocs()
+}
+
+async function scanner(e){
+
+ if(e.key!=='Enter') return
+
+ await inserirManual()
 }
 
 async function renderDocs(){
 
- const {data:docs}=await client.from('documentos').select('*').eq('viagem_id',viagemAtual.id)
+ const {data:docs}=await client
+ .from('documentos')
+ .select('*')
+ .eq('viagem_id',viagemAtual.id)
 
  const tbody=document.getElementById('docs')
  tbody.innerHTML=''
 
  docs.forEach(d=>{
-   tbody.innerHTML+=`
+  tbody.innerHTML+=`
    <tr>
    <td>${d.numero_cte}</td>
    <td>${d.data_saida||'-'}</td>
@@ -208,9 +211,20 @@ async function remover(id){
 }
 
 async function finalizar(){
+
+ const {data:docs}=await client
+ .from('documentos')
+ .select('*')
+ .eq('viagem_id',viagemAtual.id)
+
+ if(!docs.length){
+  Swal.fire('Adicione ao menos 1 CT-e')
+  return
+ }
+
  await client.from('viagens').update({
-   status:'FINALIZADA',
-   finalizado_em:agoraBrasil()
+  status:'FINALIZADA',
+  finalizado_em:agoraBrasil()
  }).eq('id',viagemAtual.id)
 
  fechar()
@@ -224,72 +238,38 @@ async function abrirPdf(numero){
 
 async function pdf(){
 
-    const { jsPDF } = window.jspdf
-    const doc = new jsPDF()
+ const {jsPDF}=window.jspdf
+ const doc=new jsPDF()
 
-    const empresa = viagemAtual.transportadora || 'MACEDO'
+ const empresa=viagemAtual.transportadora||'MACEDO'
 
-    doc.setFontSize(20)
-    doc.text('ROMANEIO DE VIAGEM',20,20)
+ doc.setFontSize(20)
+ doc.text('ROMANEIO DE VIAGEM',20,20)
 
-    doc.setFontSize(14)
-    doc.text(
-        empresa === 'MACEDO'
-        ? 'MACEDO TRANSPORTES'
-        : 'PANTANAL TRANSPORTES',
-        20,32
-    )
+ doc.setFontSize(14)
+ doc.text(
+  empresa==='MACEDO'
+  ?'MACEDO TRANSPORTES'
+  :'PANTANAL TRANSPORTES',
+  20,32
+ )
 
-    doc.line(20,36,190,36)
+ doc.line(20,36,190,36)
 
-    doc.setFontSize(12)
+ doc.text(`Viagem: ${viagemAtual.numero}`,20,50)
+ doc.text(`Placa: ${viagemAtual.placa}`,20,60)
+ doc.text(`Motorista: ${viagemAtual.motorista}`,20,70)
 
-    doc.text(`Viagem: ${viagemAtual.numero}`,20,50)
-    doc.text(`Placa: ${viagemAtual.placa}`,20,60)
-    doc.text(`Motorista: ${viagemAtual.motorista}`,20,70)
-    doc.text(`Status: ${viagemAtual.status}`,20,80)
-    doc.text(`Abertura: ${viagemAtual.created_at || '-'}`,20,90)
-    doc.text(`Finalização: ${viagemAtual.finalizado_em || '-'}`,20,100)
+ const {data:docs}=await client.from('documentos').select('*').eq('viagem_id',viagemAtual.id)
 
-    const { data:docs } = await client
-        .from('documentos')
-        .select('*')
-        .eq('viagem_id',viagemAtual.id)
+ let y=95
 
-    let y = 120
+ docs.forEach((d,index)=>{
+  doc.text(`${index+1}. CT-e ${d.numero_cte}`,20,y)
+  y+=10
+ })
 
-    doc.text('CT-es da viagem:',20,y)
-    y += 12
-
-    docs.forEach((d,index)=>{
-
-        doc.text(
-            `${index+1}. CT-e ${parseInt(d.numero_cte)}`,
-            25,
-            y
-        )
-
-        y += 8
-
-        doc.text(
-            `Cidade: ${d.cidade || '-'}`,
-            35,
-            y
-        )
-
-        y += 12
-    })
-
-    doc.line(20,280,190,280)
-
-    doc.setFontSize(10)
-    doc.text(
-        `Emitido em ${agoraBrasil()}`,
-        20,
-        287
-    )
-
-    doc.save(`ROMANEIO-${empresa}-${viagemAtual.numero}.pdf`)
+ doc.save(`ROMANEIO-${empresa}-${viagemAtual.numero}.pdf`)
 }
 
 async function atualizarDashboardBaixa(){
@@ -309,29 +289,50 @@ async function listarPendentes(){
 
  const placa=document.getElementById('placaBaixa').value
 
- const viagem=viagens.find(v=>v.placa===placa)
+ if(!placa) return
 
- if(!viagem)return
-
- const {data:docs}=await client.from('documentos').select('*').eq('viagem_id',viagem.id)
+ const viagensPlaca = viagens.filter(
+   v => v.placa === placa && v.status === 'FINALIZADA'
+ )
 
  const div=document.getElementById('listaPendentes')
  div.innerHTML=''
 
- docs.filter(d=>d.status_entrega!=='ENTREGUE').forEach(d=>{
-   div.innerHTML+=`
-   <div class="card">
-   <p><b>CT-e:</b> ${d.numero_cte}</p>
-   <p><b>Saída:</b> ${d.data_saida||'-'}</p>
+ if(!viagensPlaca.length){
+   div.innerHTML='<p>Nenhuma viagem encontrada.</p>'
+   return
+ }
 
-   <input id="rec-${d.id}" placeholder="Recebedor">
-   <input id="doc-${d.id}" placeholder="Documento">
+ for(const viagem of viagensPlaca){
 
-   <button class="btn-finalizar" onclick="registrarBaixa('${d.id}')">
-   Registrar Baixa
-   </button>
-   </div>`
- })
+   const {data:docs}=await client
+     .from('documentos')
+     .select('*')
+     .eq('viagem_id',viagem.id)
+
+   docs
+   .filter(d=>d.status_entrega!=='ENTREGUE')
+   .forEach(d=>{
+
+     div.innerHTML+=`
+     <div class="card">
+       <p><b>Transportadora:</b> ${viagem.transportadora || 'MACEDO'}</p>
+       <p><b>CT-e:</b> ${d.numero_cte}</p>
+       <p><b>Saída:</b> ${d.data_saida||'-'}</p>
+
+       <input id="rec-${d.id}" placeholder="Recebedor">
+       <input id="doc-${d.id}" placeholder="Documento">
+
+       <button class="btn-finalizar" onclick="registrarBaixa('${d.id}')">
+         Registrar Baixa
+       </button>
+     </div>`
+   })
+ }
+
+ if(div.innerHTML===''){
+   div.innerHTML='<p>Sem CT-es pendentes.</p>'
+ }
 }
 
 async function registrarBaixa(id){
@@ -340,10 +341,10 @@ async function registrarBaixa(id){
  const documento=document.getElementById(`doc-${id}`).value
 
  await client.from('documentos').update({
-   status_entrega:'ENTREGUE',
-   data_baixa:agoraBrasil(),
-   recebedor,
-   documento_recebedor:documento
+  status_entrega:'ENTREGUE',
+  data_baixa:agoraBrasil(),
+  recebedor,
+  documento_recebedor:documento
  }).eq('id',id)
 
  Swal.fire('Baixa registrada')
@@ -354,53 +355,58 @@ async function registrarBaixa(id){
 
 async function rastrearCte(){
 
-    const numero =
-        document.getElementById('buscarCte').value.trim()
+ const numeroDigitado = document
+   .getElementById('buscarCte')
+   .value
+   .trim()
 
-    const numeroFormatado =
-        numero.padStart(9,'0')
+ const numeroBusca = normalizarNumero(numeroDigitado)
 
-    const { data } = await client
-        .from('documentos')
-        .select(`
-            *,
-            viagens(
-                placa,
-                motorista,
-                transportadora
-            )
-        `)
-        .eq('numero_cte',numeroFormatado)
+ const { data, error } = await client
+   .from('documentos')
+   .select(`
+     *,
+     viagens (
+       placa,
+       motorista,
+       transportadora
+     )
+   `)
 
-    const div =
-        document.getElementById('resultadoRastreio')
+ const div=document.getElementById('resultadoRastreio')
 
-    if(!data || !data.length){
-        div.innerHTML = '<p>CT-e não encontrado</p>'
-        return
-    }
+ if(error){
+   div.innerHTML='<p>Erro ao consultar rastreio</p>'
+   return
+ }
 
-    const cte = data[0]
+ const encontrado = data.find(
+   d => normalizarNumero(d.numero_cte) === numeroBusca
+ )
 
-    div.innerHTML = `
-        <div class="card">
-            <h3>CT-e ${parseInt(cte.numero_cte)}</h3>
+ if(!encontrado){
+   div.innerHTML='<p>CT-e não encontrado</p>'
+   return
+ }
 
-            <p><b>Transportadora:</b> ${cte.viagens?.transportadora || 'MACEDO'}</p>
-            <p><b>Placa:</b> ${cte.viagens?.placa || '-'}</p>
-            <p><b>Motorista:</b> ${cte.viagens?.motorista || '-'}</p>
-            <p><b>Status:</b> ${cte.status_entrega || 'EM ROTA'}</p>
-            <p><b>Saída:</b> ${cte.data_saida || '-'}</p>
-            <p><b>Baixa:</b> ${cte.data_baixa || '-'}</p>
-            <p><b>Recebedor:</b> ${cte.recebedor || '-'}</p>
-        </div>
-    `
+ div.innerHTML=`
+   <div class="card">
+     <h3>CT-e ${parseInt(encontrado.numero_cte)}</h3>
+
+     <p><b>Transportadora:</b> ${encontrado.viagens?.transportadora || '-'}</p>
+     <p><b>Placa:</b> ${encontrado.viagens?.placa || '-'}</p>
+     <p><b>Motorista:</b> ${encontrado.viagens?.motorista || '-'}</p>
+     <p><b>Status:</b> ${encontrado.status_entrega || 'EM ROTA'}</p>
+     <p><b>Saída:</b> ${encontrado.data_saida || '-'}</p>
+     <p><b>Baixa:</b> ${encontrado.data_baixa || '-'}</p>
+     <p><b>Recebedor:</b> ${encontrado.recebedor || '-'}</p>
+   </div>`
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
 
  document.getElementById('buscarCte')?.addEventListener('keypress',e=>{
-   if(e.key==='Enter') rastrearCte()
+  if(e.key==='Enter') rastrearCte()
  })
 
  carregar()
