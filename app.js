@@ -6,9 +6,34 @@ const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
 let viagens=[]
 let viagemAtual=null
 
+let transportadoraSelecionada = 'MACEDO'
+
 function agoraBrasil(){
  const agora=new Date()
  return `${agora.toLocaleDateString('sv-SE')} ${agora.toLocaleTimeString('pt-BR',{hour12:false})}`
+}
+
+function setTransportadora(tipo){
+
+    transportadoraSelecionada = tipo
+
+    document
+        .getElementById('btnMacedo')
+        .classList.remove('ativo')
+
+    document
+        .getElementById('btnPantanal')
+        .classList.remove('ativo')
+
+    if(tipo === 'MACEDO'){
+        document
+            .getElementById('btnMacedo')
+            .classList.add('ativo')
+    }else{
+        document
+            .getElementById('btnPantanal')
+            .classList.add('ativo')
+    }
 }
 
 function mostrarTela(tela){
@@ -64,26 +89,34 @@ function carregarSelects(motoristas,veiculos){
 
 async function criarViagem(){
 
- const placa=document.getElementById('placa').value
- const cpf=document.getElementById('motorista').value
+    const placa = document.getElementById('placa').value
+    const cpf = document.getElementById('motorista').value
 
- if(placa==='Selecione placa'||cpf==='Selecione motorista'){
-   Swal.fire('Preencha os campos')
-   return
- }
+    if(placa==='Selecione placa' || cpf==='Selecione motorista'){
+        Swal.fire('Preencha os campos')
+        return
+    }
 
- const {data:motorista}=await client.from('motoristas').select('*').eq('cpf',cpf).single()
+    const { data:motorista } = await client
+        .from('motoristas')
+        .select('*')
+        .eq('cpf',cpf)
+        .single()
 
- await client.from('viagens').insert([{
-   placa,
-   motorista:motorista.nome,
-   cpf_motorista:cpf,
-   status:'ABERTA',
-   created_at:agoraBrasil()
- }])
+    await client
+        .from('viagens')
+        .insert([{
+            placa,
+            motorista:motorista.nome,
+            cpf_motorista:cpf,
+            transportadora:transportadoraSelecionada,
+            status:'ABERTA',
+            created_at:agoraBrasil()
+        }])
 
- Swal.fire('Viagem criada')
- carregar()
+    Swal.fire('Viagem criada')
+
+    carregar()
 }
 
 function render(){
@@ -99,7 +132,10 @@ function render(){
    lista.innerHTML+=`
    <tr>
    <td>${v.numero}</td>
-   <td>${v.placa}</td>
+   <td>
+    ${v.placa}
+    <div class="data-info">${v.transportadora || 'MACEDO'}</div>
+   </td>
    <td>${v.motorista}</td>
    <td>
    <span class="status-${v.status.toLowerCase()}">${v.status}</span>
@@ -188,21 +224,72 @@ async function abrirPdf(numero){
 
 async function pdf(){
 
- const {jsPDF}=window.jspdf
- const doc=new jsPDF()
+    const { jsPDF } = window.jspdf
+    const doc = new jsPDF()
 
- doc.text('ROMANEIO',20,20)
- doc.text('Viagem '+viagemAtual.numero,20,40)
+    const empresa = viagemAtual.transportadora || 'MACEDO'
 
- const {data:docs}=await client.from('documentos').select('*').eq('viagem_id',viagemAtual.id)
+    doc.setFontSize(20)
+    doc.text('ROMANEIO DE VIAGEM',20,20)
 
- let y=60
- docs.forEach(d=>{
-   doc.text(d.numero_cte,20,y)
-   y+=10
- })
+    doc.setFontSize(14)
+    doc.text(
+        empresa === 'MACEDO'
+        ? 'MACEDO TRANSPORTES'
+        : 'PANTANAL TRANSPORTES',
+        20,32
+    )
 
- doc.save(`ROMANEIO-${viagemAtual.numero}.pdf`)
+    doc.line(20,36,190,36)
+
+    doc.setFontSize(12)
+
+    doc.text(`Viagem: ${viagemAtual.numero}`,20,50)
+    doc.text(`Placa: ${viagemAtual.placa}`,20,60)
+    doc.text(`Motorista: ${viagemAtual.motorista}`,20,70)
+    doc.text(`Status: ${viagemAtual.status}`,20,80)
+    doc.text(`Abertura: ${viagemAtual.created_at || '-'}`,20,90)
+    doc.text(`Finalização: ${viagemAtual.finalizado_em || '-'}`,20,100)
+
+    const { data:docs } = await client
+        .from('documentos')
+        .select('*')
+        .eq('viagem_id',viagemAtual.id)
+
+    let y = 120
+
+    doc.text('CT-es da viagem:',20,y)
+    y += 12
+
+    docs.forEach((d,index)=>{
+
+        doc.text(
+            `${index+1}. CT-e ${parseInt(d.numero_cte)}`,
+            25,
+            y
+        )
+
+        y += 8
+
+        doc.text(
+            `Cidade: ${d.cidade || '-'}`,
+            35,
+            y
+        )
+
+        y += 12
+    })
+
+    doc.line(20,280,190,280)
+
+    doc.setFontSize(10)
+    doc.text(
+        `Emitido em ${agoraBrasil()}`,
+        20,
+        287
+    )
+
+    doc.save(`ROMANEIO-${empresa}-${viagemAtual.numero}.pdf`)
 }
 
 async function atualizarDashboardBaixa(){
@@ -267,31 +354,47 @@ async function registrarBaixa(id){
 
 async function rastrearCte(){
 
- const numero=normalizarNumero(document.getElementById('buscarCte').value)
+    const numero =
+        document.getElementById('buscarCte').value.trim()
 
- const {data}=await client.from('documentos').select('*')
+    const numeroFormatado =
+        numero.padStart(9,'0')
 
- const cte=data.find(d=>normalizarNumero(d.numero_cte)===numero)
+    const { data } = await client
+        .from('documentos')
+        .select(`
+            *,
+            viagens(
+                placa,
+                motorista,
+                transportadora
+            )
+        `)
+        .eq('numero_cte',numeroFormatado)
 
- const div=document.getElementById('resultadoRastreio')
+    const div =
+        document.getElementById('resultadoRastreio')
 
- if(!cte){
-   div.innerHTML='CT-e não encontrado'
-   return
- }
+    if(!data || !data.length){
+        div.innerHTML = '<p>CT-e não encontrado</p>'
+        return
+    }
 
- const viagem=viagens.find(v=>v.id===cte.viagem_id)
+    const cte = data[0]
 
- div.innerHTML=`
- <div class="card">
- <h3>CT-e ${cte.numero_cte}</h3>
- <p><b>Status:</b> ${cte.status_entrega}</p>
- <p><b>Saída:</b> ${cte.data_saida||'-'}</p>
- <p><b>Baixa:</b> ${cte.data_baixa||'-'}</p>
- <p><b>Placa:</b> ${viagem?.placa||'-'}</p>
- <p><b>Motorista:</b> ${viagem?.motorista||'-'}</p>
- <p><b>Recebedor:</b> ${cte.recebedor||'-'}</p>
- </div>`
+    div.innerHTML = `
+        <div class="card">
+            <h3>CT-e ${parseInt(cte.numero_cte)}</h3>
+
+            <p><b>Transportadora:</b> ${cte.viagens?.transportadora || 'MACEDO'}</p>
+            <p><b>Placa:</b> ${cte.viagens?.placa || '-'}</p>
+            <p><b>Motorista:</b> ${cte.viagens?.motorista || '-'}</p>
+            <p><b>Status:</b> ${cte.status_entrega || 'EM ROTA'}</p>
+            <p><b>Saída:</b> ${cte.data_saida || '-'}</p>
+            <p><b>Baixa:</b> ${cte.data_baixa || '-'}</p>
+            <p><b>Recebedor:</b> ${cte.recebedor || '-'}</p>
+        </div>
+    `
 }
 
 document.addEventListener('DOMContentLoaded',()=>{

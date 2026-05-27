@@ -279,3 +279,44 @@ flex-direction:column;
 }
 
 }
+
+.transportadoras{
+display:flex;
+gap:15px;
+margin-bottom:18px;
+flex-wrap:wrap;
+}
+
+.btn-transp{
+flex:1;
+padding:18px;
+font-size:16px;
+font-weight:bold;
+border-radius:14px;
+border:none;
+cursor:pointer;
+transition:.25s;
+opacity:.55;
+transform:scale(1);
+color:white;
+box-shadow:0 4px 12px rgba(0,0,0,.15);
+}
+
+.btn-transp:hover{
+transform:translateY(-2px);
+opacity:.9;
+}
+
+.btn-transp.ativo{
+opacity:1;
+transform:scale(1.02);
+box-shadow:0 8px 18px rgba(0,0,0,.25);
+}
+
+.btn-macedo{
+background:linear-gradient(135deg,#2563eb,#1d4ed8);
+}
+
+.btn-pantanal{
+background:linear-gradient(135deg,#16a34a,#15803d);
+}

@@ -45,13 +45,36 @@
     </div>
 
     <div class="card">
-        <h2>Nova Viagem</h2>
+        <div class="card">
+    <h2>Nova Viagem</h2>
 
-        <div class="grid">
-            <select id="placa"></select>
-            <select id="motorista"></select>
-            <button class="btn-gerar" onclick="criarViagem()">Gerar Viagem</button>
-        </div>
+    <div class="transportadoras">
+
+    <button
+        class="btn-transp btn-macedo ativo"
+        onclick="setTransportadora('MACEDO')"
+        id="btnMacedo">
+        🚚 Macedo Transportes
+    </button>
+
+    <button
+        class="btn-transp btn-pantanal"
+        onclick="setTransportadora('PANTANAL')"
+        id="btnPantanal">
+        🌿 Pantanal Transportes
+    </button>
+
+</div>
+
+    <div class="grid">
+        <select id="placa"></select>
+        <select id="motorista"></select>
+
+        <button class="btn-gerar" onclick="criarViagem()">
+            Gerar Viagem
+        </button>
+    </div>
+</div>
     </div>
 
     <div class="card">
