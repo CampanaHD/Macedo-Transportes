@@ -270,20 +270,79 @@ async function pdf(){
 
  const empresa=viagemAtual.transportadora||'MACEDO'
 
- doc.setFontSize(20)
- doc.text('ROMANEIO DE VIAGEM',20,20)
+ const {data:docs}=await client
+ .from('documentos')
+ .select('*')
+ .eq('viagem_id',viagemAtual.id)
+
+ let y=20
+ let pagina=1
+
+ function cabecalho(){
+
+  doc.setFontSize(22)
+  doc.text('ROMANEIO DE VIAGEM',20,20)
+
+  doc.setFontSize(10)
+  doc.text(`Emitido em: ${agoraBrasil()}`,140,20)
+
+  doc.setFontSize(16)
+  doc.text(
+   empresa==='MACEDO'
+   ?'MACEDO TRANSPORTES'
+   :'PANTANAL TRANSPORTES',
+   20,
+   30
+  )
+
+  doc.line(20,35,190,35)
+
+  y=45
+ }
+
+ function rodape(){
+  doc.line(20,285,190,285)
+  doc.setFontSize(9)
+  doc.text('Sistema de Expedição - Gabriel Campana',20,292)
+  doc.text(`Página ${pagina}`,170,292)
+ }
+
+ cabecalho()
+
+ doc.setFontSize(11)
+
+ doc.text(`Número da Viagem: ${viagemAtual.numero}`,20,y); y+=8
+ doc.text(`Transportadora: ${empresa}`,20,y); y+=8
+ doc.text(`Placa: ${viagemAtual.placa}`,20,y); y+=8
+ doc.text(`Motorista: ${viagemAtual.motorista}`,20,y); y+=8
+ doc.text(`CPF Motorista: ${viagemAtual.cpf_motorista||'-'}`,20,y); y+=8
+ doc.text(`Status: ${viagemAtual.status}`,20,y); y+=8
+ doc.text(`Abertura: ${viagemAtual.created_at||'-'}`,20,y); y+=8
+ doc.text(`Finalização: ${viagemAtual.finalizado_em||'-'}`,20,y); y+=8
+ doc.text(`Total de CT-es: ${docs.length}`,20,y)
+
+ y+=15
 
  doc.setFontSize(14)
- doc.text(empresa==='MACEDO'?'MACEDO TRANSPORTES':'PANTANAL TRANSPORTES',20,32)
+ doc.text('DOCUMENTOS TRANSPORTADOS',20,y)
 
- const {data:docs}=await client.from('documentos').select('*').eq('viagem_id',viagemAtual.id)
-
- let y=60
+ y+=12
+ doc.setFontSize(11)
 
  docs.forEach((d,index)=>{
-  doc.text(`${index+1}. CT-e ${d.numero_cte}`,20,y)
-  y+=10
+
+  if(y>265){
+   rodape()
+   doc.addPage()
+   pagina++
+   cabecalho()
+  }
+
+  doc.text(`${index+1}) CT-e ${d.numero_cte}`,20,y)
+  y+=8
  })
+
+ rodape()
 
  doc.save(`ROMANEIO-${empresa}-${viagemAtual.numero}.pdf`)
 }
