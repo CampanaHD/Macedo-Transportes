@@ -416,47 +416,111 @@ async function registrarBaixa(id){
 
 async function rastrearCte(){
 
- const numeroBusca=normalizarNumero(document.getElementById('buscarCte').value.trim())
+ const buscaOriginal=document.getElementById('buscarCte').value.trim()
 
- const {data}=await client.from('documentos').select(`
-  *,
-  viagens(
-   placa,
-   motorista,
-   transportadora
-  )
- `)
-
- const encontrado=data.find(d=>normalizarNumero(d.numero_cte)===numeroBusca)
-
- const div=document.getElementById('resultadoRastreio')
-
- if(!encontrado){
-  div.innerHTML='<p>CT-e não encontrado</p>'
+ if(!buscaOriginal){
+  Swal.fire('Digite algo para buscar')
   return
  }
 
- div.innerHTML=`
- <div class="card">
- <h3>CT-e ${parseInt(encontrado.numero_cte)}</h3>
- <p><b>Transportadora:</b> ${encontrado.viagens?.transportadora||'-'}</p>
- <p><b>Placa:</b> ${encontrado.viagens?.placa||'-'}</p>
- <p><b>Motorista:</b> ${encontrado.viagens?.motorista||'-'}</p>
- <p><b>Status:</b> ${encontrado.status_entrega||'EM ROTA'}</p>
- <p><b>Saída:</b> ${encontrado.data_saida||'-'}</p>
- <p><b>Baixa:</b> ${encontrado.data_baixa||'-'}</p>
- <p><b>Recebedor:</b> ${encontrado.recebedor||'-'}</p>
- </div>`
-}
+const busca=buscaOriginal.replace(/\D/g,'').replace(/^0+/,'')
 
-document.addEventListener('DOMContentLoaded',()=>{
+ const {data,error}=await client
+ .from('documentos')
+ .select(`
+   *,
+   viagens(
+     placa,
+     motorista,
+     transportadora
+   )
+ `)
 
- document.getElementById('buscarCte')?.addEventListener('keypress',e=>{
-  if(e.key==='Enter') rastrearCte()
+ if(error){
+  Swal.fire(error.message)
+  return
+ }
+
+ const encontrados=(data||[]).filter(d=>{
+
+  const numeroCte=String(d.numero_cte||'').replace(/\D/g,'')
+  const numeroNota=String(d.numero_nota||'').replace(/\D/g,'').replace(/^0+/,'')
+  const remetente=String(d.remetente_cnpj||'').replace(/\D/g,'')
+  const destinatario=String(d.destinatario_cnpj||'').replace(/\D/g,'')
+
+  return (
+   numeroCte.includes(busca) ||
+   numeroNota.includes(busca) ||
+   remetente.includes(busca) ||
+   destinatario.includes(busca)
+  )
  })
 
- carregar()
-})
+ const div=document.getElementById('resultadoRastreio')
+
+ if(!encontrados.length){
+  div.innerHTML='<p>Nenhum documento encontrado</p>'
+  return
+ }
+
+ div.innerHTML=''
+
+ encontrados.forEach(encontrado=>{
+
+  div.innerHTML+=`
+  <div class="card rastreio-card">
+
+   <h3>CT-e ${encontrado.numero_cte}</h3>
+
+   <p><b>Nota:</b> ${encontrado.numero_nota||'-'}</p>
+
+   <hr>
+
+   <p><b>Remetente:</b> ${encontrado.remetente||'-'}</p>
+   <p><b>CNPJ Remetente:</b> ${encontrado.remetente_cnpj||'-'}</p>
+
+   <hr>
+
+   <p><b>Destinatário:</b> ${encontrado.destinatario||'-'}</p>
+   <p><b>CNPJ Destinatário:</b> ${encontrado.destinatario_cnpj||'-'}</p>
+
+   <hr>
+
+   <p><b>Valor Mercadoria:</b> R$ ${encontrado.valor_nota||'-'}</p>
+   <p><b>Valor Frete:</b> R$ ${encontrado.valor_cte||'-'}</p>
+
+   <hr>
+
+   <p><b>Status:</b> ${encontrado.status_entrega||'EM ROTA'}</p>
+
+   <p><b>Transportadora:</b> ${encontrado.viagens?.transportadora||'-'}</p>
+
+   <p><b>Placa:</b> ${encontrado.viagens?.placa||'-'}</p>
+
+   <p><b>Motorista:</b> ${encontrado.viagens?.motorista||'-'}</p>
+
+   <p><b>Saída:</b> ${encontrado.data_saida||'-'}</p>
+
+   <p><b>Baixa:</b> ${encontrado.data_baixa||'-'}</p>
+
+   <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+
+    <button class="btn-pdf"
+      onclick="abrirDanfe('${encontrado.chave_cte}')">
+      Abrir DANFE
+    </button>
+
+    <button class="btn-gerar"
+      onclick="baixarDanfe('${encontrado.chave_cte}')">
+      Baixar PDF
+    </button>
+
+   </div>
+
+  </div>
+  `
+ })
+}
 
 
 
@@ -617,3 +681,14 @@ document.addEventListener('DOMContentLoaded',()=>{
  carregar()
  carregarAcompanhamento()
 })
+
+function abrirDanfe(chave){
+    window.open(
+        `https://www.cte.fazenda.gov.br/portal/consulta.aspx?tipoConsulta=completa&chCTe=${chave}`,
+        '_blank'
+    )
+}
+
+function baixarDanfe(chave){
+    abrirDanfe(chave)
+}

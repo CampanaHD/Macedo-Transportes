@@ -97,7 +97,7 @@
         <h2>Rastreio de CT-e</h2>
 
         <div class="grid">
-            <input id="buscarCte" placeholder="Digite número do CT-e">
+            <input id="buscarCte" placeholder="CT-e, Nota, CNPJ remetente ou destinatário">
             <button class="btn-gerar" onclick="rastrearCte()">Buscar</button>
         </div>
 
@@ -164,10 +164,10 @@
         <h2>Acompanhamento de Entregas</h2>
 
         <div class="grid">
+            
+            <input type="date" id="dataInicio" placeholder="Data Início">
 
-            <input type="date" id="dataInicio">
-
-            <input type="date" id="dataFim">
+            <input type="date" id="dataFim" placeholder="Data Fim">
 
             <button class="btn-gerar" onclick="buscarAcompanhamento()">
                 Buscar
