@@ -692,3 +692,112 @@ function abrirDanfe(chave){
 function baixarDanfe(chave){
     abrirDanfe(chave)
 }
+
+async function gerarDanfe(chave, baixar=false){
+
+ const {data,error}=await client
+ .from('documentos')
+ .select('*')
+ .eq('chave_cte',chave)
+ .single()
+
+ if(error || !data){
+   Swal.fire('Documento não encontrado')
+   return
+ }
+
+ const html=`
+ <!DOCTYPE html>
+ <html>
+ <head>
+   <title>DANFE</title>
+   <style>
+    body{
+      font-family:Arial;
+      padding:30px;
+      color:#111;
+    }
+
+    .box{
+      border:2px solid #000;
+      padding:20px;
+      margin-bottom:20px;
+    }
+
+    h1,h2{
+      margin:0 0 15px 0;
+    }
+
+    .linha{
+      margin:8px 0;
+    }
+
+    .titulo{
+      font-weight:bold;
+      display:inline-block;
+      width:180px;
+    }
+
+    button{
+      padding:12px 18px;
+      background:#2563eb;
+      color:white;
+      border:none;
+      border-radius:8px;
+      cursor:pointer;
+      margin-top:20px;
+    }
+   </style>
+ </head>
+ <body>
+
+ <div class="box">
+   <h1>MACEDO TRANSPORTES</h1>
+   <h2>DANFE / Consulta Fiscal</h2>
+
+   <div class="linha"><span class="titulo">CT-e:</span> ${data.numero_cte}</div>
+   <div class="linha"><span class="titulo">Nota Fiscal:</span> ${data.numero_nota||'-'}</div>
+
+   <hr>
+
+   <div class="linha"><span class="titulo">Remetente:</span> ${data.remetente||'-'}</div>
+   <div class="linha"><span class="titulo">CNPJ:</span> ${data.remetente_cnpj||'-'}</div>
+
+   <hr>
+
+   <div class="linha"><span class="titulo">Destinatário:</span> ${data.destinatario||'-'}</div>
+   <div class="linha"><span class="titulo">CNPJ:</span> ${data.destinatario_cnpj||'-'}</div>
+
+   <hr>
+
+   <div class="linha"><span class="titulo">Valor Mercadoria:</span> R$ ${data.valor_nota||'-'}</div>
+   <div class="linha"><span class="titulo">Valor Frete:</span> R$ ${data.valor_cte||'-'}</div>
+
+   <div class="linha"><span class="titulo">UF Origem:</span> ${data.uf_origem||'-'}</div>
+   <div class="linha"><span class="titulo">UF Destino:</span> ${data.uf_destino||'-'}</div>
+
+   <div class="linha"><span class="titulo">Emissão:</span> ${data.data_emissao||'-'}</div>
+
+   <button onclick="window.print()">Baixar / Imprimir PDF</button>
+ </div>
+
+ </body>
+ </html>
+ `
+
+ const novaJanela=window.open('','_blank')
+ novaJanela.document.write(html)
+ novaJanela.document.close()
+
+ if(baixar){
+   setTimeout(()=>novaJanela.print(),800)
+ }
+}
+
+function abrirDanfe(chave){
+ gerarDanfe(chave,false)
+}
+
+function baixarDanfe(chave){
+ gerarDanfe(chave,true)
+}
