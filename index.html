@@ -21,6 +21,7 @@
         <button onclick="mostrarTela('expedicao')">Expedição</button>
         <button onclick="mostrarTela('rastreio')">Rastreio</button>
         <button onclick="mostrarTela('baixa')">Baixa</button>
+        <button onclick="mostrarTela('acompanhamento')">Acompanhamento</button>
     </div>
 </div>
 
@@ -127,6 +128,69 @@
         <h2>Baixa de Entregas</h2>
         <select id="placaBaixa" onchange="listarPendentes()"></select>
         <div id="listaPendentes"></div>
+    </div>
+
+</div>
+
+<!-- ACOMPANHAMENTO -->
+<div id="acompanhamentoTela" class="container hidden">
+
+    <div class="dashboard">
+
+        <div class="card-mini azul">
+            <h2 id="painelTotal">0</h2>
+            <span>Total CT-es</span>
+        </div>
+
+        <div class="card-mini verde">
+            <h2 id="painelEntregues">0</h2>
+            <span>Entregues</span>
+        </div>
+
+        <div class="card-mini vermelho">
+            <h2 id="painelPendentes">0</h2>
+            <span>Pendentes</span>
+        </div>
+
+        <div class="card-mini roxo">
+            <h2 id="painelOcorrencias">0</h2>
+            <span>Ocorrências</span>
+        </div>
+
+    </div>
+
+    <div class="card">
+
+        <h2>Acompanhamento de Entregas</h2>
+
+        <div class="grid">
+
+            <input type="date" id="dataInicio">
+
+            <input type="date" id="dataFim">
+
+            <button class="btn-gerar" onclick="buscarAcompanhamento()">
+                Buscar
+            </button>
+
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Placa</th>
+                    <th>Motorista</th>
+                    <th>Transportadora</th>
+                    <th>Total</th>
+                    <th>Entregues</th>
+                    <th>Pendentes</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody id="listaAcompanhamento"></tbody>
+        </table>
+
     </div>
 
 </div>

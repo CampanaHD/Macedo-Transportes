@@ -26,10 +26,20 @@ function setTransportadora(tipo){
 }
 
 function mostrarTela(tela){
- document.querySelectorAll('[id$="Tela"]').forEach(el=>el.classList.add('hidden'))
+
+ document.querySelectorAll('[id$="Tela"]').forEach(el=>{
+   el.classList.add('hidden')
+ })
+
  document.getElementById(tela+'Tela').classList.remove('hidden')
 
- if(tela==='baixa') atualizarDashboardBaixa()
+ if(tela==='baixa'){
+   atualizarDashboardBaixa()
+ }
+
+ if(tela==='acompanhamento'){
+   carregarAcompanhamento()
+ }
 }
 
 function normalizarNumero(numero){
@@ -446,4 +456,164 @@ document.addEventListener('DOMContentLoaded',()=>{
  })
 
  carregar()
+})
+
+
+
+// =============================
+// ACOMPANHAMENTO
+// =============================
+
+async function carregarAcompanhamento(dataInicio=null,dataFim=null){
+
+ const { data:docs, error } = await client
+ .from('documentos')
+ .select(`
+   *,
+   viagens(
+     numero,
+     placa,
+     motorista,
+     transportadora
+   )
+ `)
+
+ const tbody=document.getElementById('listaAcompanhamento')
+
+ if(!tbody) return
+
+ tbody.innerHTML=''
+
+ if(error){
+  console.error(error)
+  tbody.innerHTML='<tr><td colspan="7">Erro ao carregar</td></tr>'
+  return
+ }
+
+ let docsFiltrados=docs||[]
+
+ if(dataInicio && dataFim){
+  docsFiltrados=docsFiltrados.filter(doc=>{
+   const dataDoc=(doc.data_saida||'').split(' ')[0]
+   return dataDoc>=dataInicio && dataDoc<=dataFim
+  })
+ }
+
+ if(!docsFiltrados.length){
+  tbody.innerHTML='<tr><td colspan="7">Nenhum registro encontrado</td></tr>'
+  return
+ }
+
+ const agrupado={}
+
+ docsFiltrados.forEach(doc=>{
+
+  const placa=doc.viagens?.placa||'-'
+
+  if(!agrupado[placa]){
+   agrupado[placa]={
+    motorista:doc.viagens?.motorista||'-',
+    transportadora:doc.viagens?.transportadora||'-',
+    docs:[]
+   }
+  }
+
+  agrupado[placa].docs.push(doc)
+ })
+
+ Object.keys(agrupado).forEach(placa=>{
+
+  const item=agrupado[placa]
+  const total=item.docs.length
+  const entregues=item.docs.filter(d=>d.status_entrega==='ENTREGUE').length
+  const pendentes=total-entregues
+
+  tbody.innerHTML+=`
+   <tr>
+    <td>${placa}</td>
+    <td>${item.motorista}</td>
+    <td>${item.transportadora}</td>
+    <td>${total}</td>
+    <td>${entregues}</td>
+    <td>${pendentes}</td>
+    <td>
+      <button class="btn-ver" onclick="verEntregas('${placa}')">
+        Ver Entregas
+      </button>
+    </td>
+   </tr>
+  `
+ })
+}
+
+async function buscarAcompanhamento(){
+
+ const dataInicio=document.getElementById('dataInicio')?.value
+ const dataFim=document.getElementById('dataFim')?.value
+
+ await carregarAcompanhamento(
+  dataInicio||null,
+  dataFim||null
+ )
+}
+
+async function verEntregas(placa){
+
+ const {data:docs}=await client
+ .from('documentos')
+ .select(`
+   *,
+   viagens(
+    placa,
+    motorista,
+    transportadora
+   )
+ `)
+
+ const docsPlaca=(docs||[]).filter(
+  d=>d.viagens?.placa===placa
+ )
+
+ if(!docsPlaca.length){
+  Swal.fire('Nenhuma entrega encontrada')
+  return
+ }
+
+ let html=''
+
+ docsPlaca.forEach(d=>{
+
+  html+=`
+   <div style="
+    text-align:left;
+    margin-bottom:10px;
+    padding:12px;
+    border:1px solid #ddd;
+    border-radius:8px;
+   ">
+    <b>CT-e:</b> ${d.numero_cte}<br>
+    <b>Status:</b> ${d.status_entrega}<br>
+    <b>Saída:</b> ${d.data_saida||'-'}<br>
+    <b>Baixa:</b> ${d.data_baixa||'-'}<br>
+    <b>Recebedor:</b> ${d.recebedor||'-'}
+   </div>
+  `
+ })
+
+ Swal.fire({
+  title:`Entregas da placa ${placa}`,
+  html,
+  width:900
+ })
+}
+
+// ÚNICO DOMContentLoaded
+document.addEventListener('DOMContentLoaded',()=>{
+
+ document.getElementById('buscarCte')?.addEventListener('keypress',e=>{
+  if(e.key==='Enter') rastrearCte()
+ })
+
+ carregar()
+ carregarAcompanhamento()
 })
