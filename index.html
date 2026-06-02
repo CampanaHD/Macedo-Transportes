@@ -137,56 +137,98 @@
 
     <div class="dashboard">
 
-        <div class="card-mini azul">
-            <h2 id="painelTotal">0</h2>
-            <span>Total CT-es</span>
-        </div>
-
-        <div class="card-mini verde">
-            <h2 id="painelEntregues">0</h2>
-            <span>Entregues</span>
-        </div>
-
-        <div class="card-mini vermelho">
-            <h2 id="painelPendentes">0</h2>
-            <span>Pendentes</span>
-        </div>
-
-        <div class="card-mini roxo">
-            <h2 id="painelOcorrencias">0</h2>
-            <span>Ocorrências</span>
-        </div>
-
+    <div class="card-mini azul">
+        <h2 id="painelTotal">0</h2>
+        <span>Total CT-es</span>
     </div>
+
+    <div class="card-mini verde">
+        <h2 id="painelEntregues">0</h2>
+        <span>Entregues</span>
+    </div>
+
+    <div class="card-mini vermelho">
+        <h2 id="painelPendentes">0</h2>
+        <span>Pendentes</span>
+    </div>
+
+    <div class="card-mini roxo">
+        <h2 id="painelPercentual">0%</h2>
+        <span>% Entregue</span>
+    </div>
+
+    <div class="card-mini azul">
+        <h2 id="painelFrete">R$ 0</h2>
+        <span>Valor Frete</span>
+    </div>
+
+    <div class="card-mini verde">
+        <h2 id="painelMercadoria">R$ 0</h2>
+        <span>Mercadorias</span>
+    </div>
+
+    <div class="card-mini azul">
+        <h2 id="painelMacedo">0</h2>
+        <span>Macedo</span>
+    </div>
+
+    <div class="card-mini verde">
+        <h2 id="painelPantanal">0</h2>
+        <span>Pantanal</span>
+    </div>
+
+    <div class="card-mini amarelo">
+    <h2 id="painelOcorrencias">0</h2>
+    <span>Ocorrências</span>
+</div>
+
+</div>
 
     <div class="card">
 
         <h2>Acompanhamento de Entregas</h2>
 
         <div class="grid">
-            
-            <input type="date" id="dataInicio" placeholder="Data Início">
 
-            <input type="date" id="dataFim" placeholder="Data Fim">
+    <input type="date" id="dataInicio">
 
-            <button class="btn-gerar" onclick="buscarAcompanhamento()">
-                Buscar
-            </button>
+    <input type="date" id="dataFim">
 
-        </div>
+    <select id="filtroTransportadora">
+        <option value="">Todas</option>
+        <option value="MACEDO">MACEDO</option>
+        <option value="PANTANAL">PANTANAL</option>
+    </select>
+
+    <input
+        type="text"
+        id="filtroBusca"
+        placeholder="CT-e / NF / Destinatário"
+    >
+
+    <button
+        class="btn-gerar"
+        onclick="buscarAcompanhamento()">
+        Buscar
+    </button>
+
+</div>
 
         <table>
             <thead>
-                <tr>
-                    <th>Placa</th>
-                    <th>Motorista</th>
-                    <th>Transportadora</th>
-                    <th>Total</th>
-                    <th>Entregues</th>
-                    <th>Pendentes</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
+<tr>
+    <th>Placa</th>
+    <th>Motorista</th>
+    <th>Transportadora</th>
+    <th>Total CT-es</th>
+    <th>Entregues</th>
+    <th>Pendentes</th>
+    <th>% Entregue</th>
+    <th>Mercadoria</th>
+    <th>Frete</th>
+    <th>Ações</th>
+</tr>
+</thead>
 
             <tbody id="listaAcompanhamento"></tbody>
         </table>
@@ -204,6 +246,7 @@
             <button class="btn-fechar" onclick="fechar()">X</button>
         </div>
 
+        <div id="msgScanner" class="msg-scanner"></div>
         <div class="grid">
             <input
     id="scanner"

@@ -164,12 +164,12 @@ async function cancelar(id){
  carregar()
 }
 
-async function abrir(numero){
- viagemAtual=viagens.find(v=>v.numero===numero)
- document.getElementById('modal').classList.remove('hidden')
- document.getElementById('tituloViagem').innerText='Viagem #'+numero
- renderDocs()
-}
+// async function abrir(numero){
+//  viagemAtual=viagens.find(v=>v.numero===numero)
+//  document.getElementById('modal').classList.remove('hidden')
+//  document.getElementById('tituloViagem').innerText='Viagem #'+numero
+//  renderDocs()
+// }
 
 function fechar(){
  document.getElementById('modal').classList.add('hidden')
@@ -180,7 +180,6 @@ async function inserirManual(){
  const chave=document.getElementById('scanner').value.trim()
 
  if(!chave){
-  Swal.fire('Digite a chave')
   return
  }
 
@@ -192,28 +191,86 @@ async function inserirManual(){
  .eq('chave_cte',chave)
  .maybeSingle()
 
+ // CT-e já existe (veio do XML)
  if(existente){
-  Swal.fire('Este CT-e já foi inserido')
+
+  // já está vinculado em outra viagem
+  if(existente.viagem_id){
+
+   mostrarMensagemScanner(
+    `CT-e ${existente.numero_cte} já está em uma viagem`,
+    'erro'
+   )
+
+   document.getElementById('scanner').value=''
+   document.getElementById('scanner').focus()
+
+   return
+  }
+
+  // apenas vincula à viagem atual
+  const {error:updateError}=await client
+  .from('documentos')
+  .update({
+   viagem_id:viagemAtual.id,
+   status_entrega:'EM ROTA',
+   data_saida:agoraBrasil()
+  })
+  .eq('id',existente.id)
+
+  if(updateError){
+
+   mostrarMensagemScanner(
+    updateError.message,
+    'erro'
+   )
+
+   return
+  }
+
+  document.getElementById('scanner').value=''
+
+  await renderDocs()
+
+  document.getElementById('scanner').focus()
+
+  mostrarMensagemScanner(
+   `CT-e ${existente.numero_cte} vinculado à viagem`
+  )
+
   return
  }
 
- const {error}=await client.from('documentos').insert([{
-  viagem_id:viagemAtual.id,
-  chave_cte:chave,
-  numero_cte:numero,
-  status_entrega:'EM ROTA',
-  data_saida:agoraBrasil()
+ // não existe no banco -> cria normalmente
+ const {error}=await client
+ .from('documentos')
+ .insert([{
+   viagem_id:viagemAtual.id,
+   chave_cte:chave,
+   numero_cte:numero,
+   status_entrega:'EM ROTA',
+   data_saida:agoraBrasil()
  }])
 
  if(error){
-  Swal.fire(error.message)
+
+  mostrarMensagemScanner(
+   error.message,
+   'erro'
+  )
+
   return
  }
 
  document.getElementById('scanner').value=''
+
  await renderDocs()
 
- Swal.fire('CT-e inserido com sucesso')
+ document.getElementById('scanner').focus()
+
+ mostrarMensagemScanner(
+  `CT-e ${numero} inserido com sucesso`
+ )
 }
 
 async function scanner(e){
@@ -556,6 +613,14 @@ async function carregarAcompanhamento(dataInicio=null,dataFim=null){
 
  let docsFiltrados=docs||[]
 
+
+ const filtroTransportadora =
+document.getElementById('filtroTransportadora')?.value || ''
+
+const filtroBusca =
+(document.getElementById('filtroBusca')?.value || '')
+.toLowerCase()
+
  if(dataInicio && dataFim){
   docsFiltrados=docsFiltrados.filter(doc=>{
    const dataDoc=(doc.data_saida||'').split(' ')[0]
@@ -563,51 +628,237 @@ async function carregarAcompanhamento(dataInicio=null,dataFim=null){
   })
  }
 
+ // FILTRO TRANSPORTADORA
+
+if(filtroTransportadora){
+
+ docsFiltrados = docsFiltrados.filter(doc=>
+   doc.viagens?.transportadora === filtroTransportadora
+ )
+
+}
+
+// FILTRO BUSCA
+
+if(filtroBusca){
+
+ docsFiltrados = docsFiltrados.filter(doc=>{
+
+   return (
+      (doc.numero_cte || '')
+      .toString()
+      .toLowerCase()
+      .includes(filtroBusca)
+
+      ||
+
+      (doc.viagens?.placa || '')
+      .toLowerCase()
+      .includes(filtroBusca)
+
+      ||
+
+      (doc.viagens?.motorista || '')
+      .toLowerCase()
+      .includes(filtroBusca)
+
+      ||
+
+      (doc.destinatario || '')
+      .toLowerCase()
+      .includes(filtroBusca)
+
+      ||
+
+      (doc.remetente || '')
+      .toLowerCase()
+      .includes(filtroBusca)
+   )
+
+ })
+
+}
+
+if(filtroTransportadora){
+
+ docsFiltrados = docsFiltrados.filter(
+   d => d.viagens?.transportadora === filtroTransportadora
+ )
+
+}
+
+if(filtroBusca){
+
+ docsFiltrados = docsFiltrados.filter(d => {
+
+   return (
+     String(d.numero_cte || '').toLowerCase().includes(filtroBusca) ||
+     String(d.numero_nota || '').toLowerCase().includes(filtroBusca) ||
+     String(d.destinatario || '').toLowerCase().includes(filtroBusca)
+   )
+
+ })
+
+}
+
  if(!docsFiltrados.length){
   tbody.innerHTML='<tr><td colspan="7">Nenhum registro encontrado</td></tr>'
   return
  }
 
+document.getElementById('painelTotal').innerText =
+docsFiltrados.length
+
+document.getElementById('painelEntregues').innerText =
+docsFiltrados.filter(
+ d=>d.status_entrega==='ENTREGUE'
+).length
+
+document.getElementById('painelPendentes').innerText =
+docsFiltrados.filter(
+ d=>d.status_entrega!=='ENTREGUE'
+).length
+
+document.getElementById('painelOcorrencias').innerText =
+docsFiltrados.filter(
+ d=>d.status_entrega==='OCORRENCIA'
+).length
+
  const agrupado={}
 
- docsFiltrados.forEach(doc=>{
+ let totalMercadoria = 0
+let totalFrete = 0
+
+docsFiltrados.forEach(doc=>{
 
   const placa=doc.viagens?.placa||'-'
 
   if(!agrupado[placa]){
-   agrupado[placa]={
-    motorista:doc.viagens?.motorista||'-',
-    transportadora:doc.viagens?.transportadora||'-',
-    docs:[]
-   }
+     agrupado[placa]={
+       motorista:doc.viagens?.motorista||'-',
+       transportadora:doc.viagens?.transportadora||'-',
+       docs:[]
+     }
   }
 
   agrupado[placa].docs.push(doc)
- })
 
- Object.keys(agrupado).forEach(placa=>{
+  totalMercadoria += Number(doc.valor_nota || 0)
+  totalFrete += Number(doc.valor_cte || 0)
+
+})
+
+Object.keys(agrupado).forEach(placa=>{
 
   const item=agrupado[placa]
+
   const total=item.docs.length
-  const entregues=item.docs.filter(d=>d.status_entrega==='ENTREGUE').length
+
+  const entregues=item.docs.filter(
+    d=>d.status_entrega==='ENTREGUE'
+  ).length
+
   const pendentes=total-entregues
+
+  const percentual=
+    total>0
+    ? ((entregues/total)*100).toFixed(1)
+    : 0
+
+  const valorMercadoria=
+    item.docs.reduce(
+      (s,d)=>s+Number(d.valor_nota||0),
+      0
+    )
+
+  const valorFrete=
+    item.docs.reduce(
+      (s,d)=>s+Number(d.valor_cte||0),
+      0
+    )
 
   tbody.innerHTML+=`
    <tr>
-    <td>${placa}</td>
-    <td>${item.motorista}</td>
-    <td>${item.transportadora}</td>
-    <td>${total}</td>
-    <td>${entregues}</td>
-    <td>${pendentes}</td>
-    <td>
-      <button class="btn-ver" onclick="verEntregas('${placa}')">
-        Ver Entregas
-      </button>
-    </td>
-   </tr>
+
+<td>${placa}</td>
+
+<td>${item.motorista}</td>
+
+<td>${item.transportadora}</td>
+
+<td>${total}</td>
+
+<td>${entregues}</td>
+
+<td>${pendentes}</td>
+
+<td>${percentual}%</td>
+
+<td>
+R$ ${valorMercadoria.toLocaleString('pt-BR')}
+</td>
+
+<td>
+R$ ${valorFrete.toLocaleString('pt-BR')}
+</td>
+
+<td>
+<button
+ class="btn-ver"
+ onclick="verEntregas('${placa}')">
+ Ver Entregas
+</button>
+</td>
+
+</tr>
+
   `
  })
+
+document.getElementById('painelMercadoria').innerText =
+'R$ ' + totalMercadoria.toLocaleString('pt-BR')
+
+document.getElementById('painelFrete').innerText =
+'R$ ' + totalFrete.toLocaleString('pt-BR')
+
+const percentualEntrega =
+docsFiltrados.length
+? (
+    docsFiltrados.filter(
+      d=>d.status_entrega==='ENTREGUE'
+    ).length
+    /
+    docsFiltrados.length
+    *100
+  ).toFixed(1)
+: 0
+
+document.getElementById('painelPercentual').innerText =
+percentualEntrega + '%'
+
+document.getElementById('painelTotal').innerText =
+docsFiltrados.length
+
+document.getElementById('painelEntregues').innerText =
+docsFiltrados.filter(
+ d => d.status_entrega === 'ENTREGUE'
+).length
+
+document.getElementById('painelPendentes').innerText =
+docsFiltrados.filter(
+ d => d.status_entrega !== 'ENTREGUE'
+).length
+
+document.getElementById('painelMacedo').innerText =
+docsFiltrados.filter(
+ d => d.viagens?.transportadora === 'MACEDO'
+).length
+
+document.getElementById('painelPantanal').innerText =
+docsFiltrados.filter(
+ d => d.viagens?.transportadora === 'PANTANAL'
+).length
+
 }
 
 async function buscarAcompanhamento(){
@@ -682,16 +933,16 @@ document.addEventListener('DOMContentLoaded',()=>{
  carregarAcompanhamento()
 })
 
-function abrirDanfe(chave){
-    window.open(
-        `https://www.cte.fazenda.gov.br/portal/consulta.aspx?tipoConsulta=completa&chCTe=${chave}`,
-        '_blank'
-    )
-}
+// function abrirDanfe(chave){
+//     window.open(
+//         `https://www.cte.fazenda.gov.br/portal/consulta.aspx?tipoConsulta=completa&chCTe=${chave}`,
+//         '_blank'
+//     )
+// }
 
-function baixarDanfe(chave){
-    abrirDanfe(chave)
-}
+// function baixarDanfe(chave){
+//     abrirDanfe(chave)
+// }
 
 async function gerarDanfe(chave, baixar=false){
 
@@ -800,4 +1051,36 @@ function abrirDanfe(chave){
 
 function baixarDanfe(chave){
  gerarDanfe(chave,true)
+}
+
+function mostrarMensagemScanner(texto,tipo='sucesso'){
+
+ const msg=document.getElementById('msgScanner')
+
+ msg.style.display='block'
+ msg.innerText=texto
+
+ msg.className=
+  tipo==='sucesso'
+  ?'msg-scanner msg-sucesso'
+  :'msg-scanner msg-erro'
+
+ setTimeout(()=>{
+  msg.style.display='none'
+ },2000)
+}
+
+async function abrir(numero){
+
+ viagemAtual=viagens.find(v=>v.numero===numero)
+
+ document.getElementById('modal').classList.remove('hidden')
+
+ document.getElementById('tituloViagem').innerText='Viagem #'+numero
+
+ await renderDocs()
+
+ setTimeout(()=>{
+   document.getElementById('scanner')?.focus()
+ },200)
 }
