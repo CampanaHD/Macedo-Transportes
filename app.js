@@ -444,10 +444,24 @@ async function listarPendentes(){
 
    <input id="rec-${d.id}" placeholder="Recebedor">
    <input id="doc-${d.id}" placeholder="Documento">
+   <label>Comprovante / Foto</label>
 
-   <button class="btn-finalizar" onclick="registrarBaixa('${d.id}')">
-   Registrar Baixa
-   </button>
+<input
+ type="file"
+ accept="image/*"
+ id="arquivo-${d.id}"
+>
+
+
+   <button class="btn-finalizar"
+onclick="registrarBaixa('${d.id}')">
+Entregue
+</button>
+
+<button class="btn-cancelar"
+onclick="abrirOcorrencia('${d.id}')">
+Ocorrência
+</button>
    </div>`
   })
  }
@@ -455,22 +469,44 @@ async function listarPendentes(){
 
 async function registrarBaixa(id){
 
- const recebedor=document.getElementById(`rec-${id}`).value
- const documento=document.getElementById(`doc-${id}`).value
+ const recebedor =
+ document.getElementById(`rec-${id}`).value
 
- await client.from('documentos').update({
-  status_entrega:'ENTREGUE',
-  data_baixa:agoraBrasil(),
-  recebedor,
-  documento_recebedor:documento
- }).eq('id',id)
+ const documento =
+ document.getElementById(`doc-${id}`).value
 
- Swal.fire('Baixa registrada')
+const arquivo =
+document.getElementById(`arquivo-${id}`).files[0]
+
+const urlArquivo =
+await uploadImagem(arquivo)
+
+console.log('URL SALVA:', urlArquivo)
+
+await client
+.from('documentos')
+.update({
+
+ status_entrega:'ENTREGUE',
+
+ data_baixa:agoraBrasil(),
+
+ recebedor,
+
+ documento_recebedor:documento,
+
+ arquivo_comprovante:urlArquivo
+
+})
+.eq('id',id)
+
+ Swal.fire(
+  'Baixa registrada com comprovantes'
+ )
 
  listarPendentes()
  atualizarDashboardBaixa()
 }
-
 async function rastrearCte(){
 
  const buscaOriginal=document.getElementById('buscarCte').value.trim()
@@ -528,6 +564,11 @@ const busca=buscaOriginal.replace(/\D/g,'').replace(/^0+/,'')
   <div class="card rastreio-card">
 
    <h3>CT-e ${encontrado.numero_cte}</h3>
+   <p><b>Chave CT-e:</b> ${encontrado.chave_cte||'-'}</p>
+
+<p><b>Viagem:</b> ${encontrado.viagem_id||'-'}</p>
+
+<p><b>Status Atual:</b> ${encontrado.status_entrega||'-'}</p>
 
    <p><b>Nota:</b> ${encontrado.numero_nota||'-'}</p>
 
@@ -550,6 +591,27 @@ const busca=buscaOriginal.replace(/\D/g,'').replace(/^0+/,'')
 
    <p><b>Status:</b> ${encontrado.status_entrega||'EM ROTA'}</p>
 
+   ${
+ encontrado.status_entrega === 'OCORRENCIA'
+ ? `
+ <p>
+ <b>Ocorrência:</b>
+ ${encontrado.tipo_ocorrencia || '-'}
+ </p>
+
+ <p>
+ <b>Observação:</b>
+ ${encontrado.observacao_ocorrencia || '-'}
+ </p>
+
+ <p>
+ <b>Data:</b>
+ ${encontrado.data_ocorrencia || '-'}
+ </p>
+ `
+ : ''
+}
+
    <p><b>Transportadora:</b> ${encontrado.viagens?.transportadora||'-'}</p>
 
    <p><b>Placa:</b> ${encontrado.viagens?.placa||'-'}</p>
@@ -558,9 +620,96 @@ const busca=buscaOriginal.replace(/\D/g,'').replace(/^0+/,'')
 
    <p><b>Saída:</b> ${encontrado.data_saida||'-'}</p>
 
-   <p><b>Baixa:</b> ${encontrado.data_baixa||'-'}</p>
+  <p><b>Baixa:</b> ${encontrado.data_baixa||'-'}</p>
 
-   <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
+  <hr>
+
+<p>
+<b>Recebedor:</b>
+${encontrado.recebedor||'-'}
+</p>
+
+<p>
+<b>Documento:</b>
+${encontrado.documento_recebedor||'-'}
+</p>
+
+<hr>
+
+<h4>Histórico</h4>
+
+<ul>
+
+<li>
+🚚 Saída para entrega:
+${encontrado.data_saida||'-'}
+</li>
+
+${
+ encontrado.data_ocorrencia
+ ?
+ `
+ <li>
+ ⚠️ Ocorrência:
+ ${encontrado.tipo_ocorrencia}
+ -
+ ${encontrado.data_ocorrencia}
+ </li>
+ `
+ :
+ ''
+}
+
+${
+ encontrado.data_baixa
+ ?
+ `
+ <li>
+ ✅ Entregue:
+ ${encontrado.data_baixa}
+ </li>
+ `
+ :
+ ''
+}
+
+</ul>
+
+${
+ encontrado.arquivo_comprovante
+ ? `
+ <hr>
+
+ <p>
+   <b>Comprovante / Evidência:</b>
+ </p>
+
+ <img
+   src="${encontrado.arquivo_comprovante}"
+   style="
+      width:250px;
+      max-width:100%;
+      border-radius:10px;
+      cursor:pointer;
+      border:1px solid #ddd;
+   "
+   onclick="window.open(this.src)"
+ >
+
+ <br><br>
+
+ <a
+   href="${encontrado.arquivo_comprovante}"
+   target="_blank"
+   class="btn-gerar"
+ >
+   Abrir Arquivo
+ </a>
+ `
+ : ''
+}
+
+<div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
 
     <button class="btn-pdf"
       onclick="abrirDanfe('${encontrado.chave_cte}')">
@@ -758,7 +907,13 @@ Object.keys(agrupado).forEach(placa=>{
     d=>d.status_entrega==='ENTREGUE'
   ).length
 
-  const pendentes=total-entregues
+const ocorrencias=item.docs.filter(
+ d=>d.status_entrega==='OCORRENCIA'
+).length
+
+const pendentes=item.docs.filter(
+ d=>d.status_entrega==='EM ROTA'
+).length
 
   const percentual=
     total>0
@@ -808,6 +963,18 @@ R$ ${valorFrete.toLocaleString('pt-BR')}
  onclick="verEntregas('${placa}')">
  Ver Entregas
 </button>
+</td>
+
+<td>
+<span style="
+background:#dc2626;
+color:white;
+padding:4px 8px;
+border-radius:6px;
+font-weight:bold;
+">
+${ocorrencias}
+</span>
 </td>
 
 </tr>
@@ -911,6 +1078,59 @@ async function verEntregas(placa){
     <b>Saída:</b> ${d.data_saida||'-'}<br>
     <b>Baixa:</b> ${d.data_baixa||'-'}<br>
     <b>Recebedor:</b> ${d.recebedor||'-'}
+    
+${
+ d.arquivo_comprovante
+ ? `
+ <br><br>
+
+ <img
+   src="${d.arquivo_comprovante}"
+   style="
+      width:150px;
+      border-radius:8px;
+      margin-top:8px;
+   "
+ >
+
+ <br>
+
+ <a
+   href="${d.arquivo_comprovante}"
+   target="_blank"
+ >
+   Ver Comprovante
+ </a>
+ `
+ : ''
+}
+
+${
+ d.foto_assinatura
+ ? `<br><a href="${d.foto_assinatura}" target="_blank">
+ Ver Assinatura
+ </a>`
+ : ''
+}
+
+${
+ d.foto_fachada
+ ? `<br><a href="${d.foto_fachada}" target="_blank">
+ Ver Fachada
+ </a>`
+ : ''
+}
+
+${
+ d.status_entrega==='OCORRENCIA'
+ ? `
+ <br>
+ <b>Tipo:</b> ${d.tipo_ocorrencia || '-'}
+ <br>
+ <b>Obs:</b> ${d.observacao_ocorrencia || '-'}
+ `
+ : ''
+}
    </div>
   `
  })
@@ -1102,4 +1322,121 @@ async function acessarAcompanhamento(){
  }
 
  mostrarTela('acompanhamento')
+}
+
+async function abrirOcorrencia(id){
+
+ const { value: formValues } = await Swal.fire({
+   title: 'Registrar Ocorrência',
+
+   html: `
+     <select id="swalOcorrencia" class="swal2-input">
+
+       <option value="CLIENTE AUSENTE">
+       Cliente Ausente
+       </option>
+
+       <option value="ENDERECO NAO LOCALIZADO">
+       Endereço Não Localizado
+       </option>
+
+       <option value="RECUSADO">
+       Recusado
+       </option>
+
+       <option value="MERCADORIA AVARIADA">
+       Mercadoria Avariada
+       </option>
+
+       <option value="REENTREGA">
+       Reentrega
+       </option>
+
+       <option value="OUTROS">
+       Outros
+       </option>
+
+     </select>
+
+     <textarea
+       id="swalObs"
+       class="swal2-textarea"
+       placeholder="Observação">
+     </textarea>
+   `,
+
+   preConfirm: () => {
+
+     return {
+
+       tipo:
+       document.getElementById('swalOcorrencia').value,
+
+       obs:
+       document.getElementById('swalObs').value
+
+     }
+
+   }
+
+ })
+
+ if(!formValues) return
+
+ await client
+ .from('documentos')
+ .update({
+
+   status_entrega:'OCORRENCIA',
+
+   tipo_ocorrencia:formValues.tipo,
+
+   observacao_ocorrencia:formValues.obs,
+
+   data_ocorrencia:agoraBrasil()
+
+ })
+ .eq('id',id)
+
+ Swal.fire(
+   'Ocorrência registrada'
+ )
+
+ listarPendentes()
+ atualizarDashboardBaixa()
+}
+
+async function uploadImagem(file){
+
+ if(!file){
+   Swal.fire('Selecione uma foto')
+   return null
+ }
+
+ const extensao = file.name.split('.').pop()
+
+ const nome =
+ `${Date.now()}-${Math.random()
+   .toString(36)
+   .substring(2)}.${extensao}`
+
+ const { data:uploadData, error } =
+ await client.storage
+ .from('comprovantes')
+ .upload(nome, file)
+
+ if(error){
+   console.error('ERRO UPLOAD:', error)
+   Swal.fire(error.message)
+   return null
+ }
+
+ const { data } =
+ client.storage
+ .from('comprovantes')
+ .getPublicUrl(nome)
+
+ console.log('URL GERADA:', data.publicUrl)
+
+ return data.publicUrl
 }
