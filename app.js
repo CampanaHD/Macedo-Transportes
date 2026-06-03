@@ -584,8 +584,47 @@ const busca=buscaOriginal.replace(/\D/g,'').replace(/^0+/,'')
 
    <hr>
 
-   <p><b>Valor Mercadoria:</b> R$ ${encontrado.valor_nota||'-'}</p>
-   <p><b>Valor Frete:</b> R$ ${encontrado.valor_cte||'-'}</p>
+   <div class="rastreio-grid">
+
+    <div class="info-box">
+        <h4>Dados CT-e</h4>
+        <p><b>CT-e:</b> ${encontrado.numero_cte}</p>
+        <p><b>Nota:</b> ${encontrado.numero_nota}</p>
+        <p><b>Status:</b> ${encontrado.status_entrega}</p>
+    </div>
+
+    <div class="info-box">
+        <h4>Remetente</h4>
+        <p>${encontrado.remetente}</p>
+        <p>${encontrado.remetente_cnpj}</p>
+    </div>
+
+    <div class="info-box">
+        <h4>Destinatário</h4>
+        <p>${encontrado.destinatario}</p>
+        <p>${encontrado.destinatario_cnpj}</p>
+    </div>
+
+    <div class="info-box">
+        <h4>Carga</h4>
+        <p><b>Peso:</b> ${encontrado.peso} kg</p>
+        <p><b>Volumes:</b> ${encontrado.quantidade_volumes}</p>
+        <p><b>M³:</b> ${encontrado.volume_m3}</p>
+    </div>
+
+    <div class="info-box">
+        <h4>Financeiro</h4>
+        <p><b>Mercadoria:</b> R$ ${encontrado.valor_nota}</p>
+        <p><b>Frete:</b> R$ ${encontrado.valor_cte}</p>
+    </div>
+
+    <div class="info-box">
+        <h4>Transporte</h4>
+        <p><b>Placa:</b> ${encontrado.viagens?.placa}</p>
+        <p><b>Motorista:</b> ${encontrado.viagens?.motorista}</p>
+    </div>
+
+</div>
 
    <hr>
 
@@ -1440,3 +1479,215 @@ async function uploadImagem(file){
 
  return data.publicUrl
 }
+
+async function importarZip(){
+
+ const arquivo =
+ document.getElementById('zipXml').files[0]
+
+ if(!arquivo){
+   Swal.fire('Selecione um arquivo ZIP')
+   return
+ }
+
+ Swal.fire({
+   title:'Importando XMLs...',
+   allowOutsideClick:false,
+   didOpen:()=>Swal.showLoading()
+ })
+
+ const zip = await JSZip.loadAsync(arquivo)
+
+ let total = 0
+
+ for(const nomeArquivo in zip.files){
+
+   const arquivoZip = zip.files[nomeArquivo]
+
+   if(
+      arquivoZip.dir ||
+      !nomeArquivo.toLowerCase().endsWith('.xml')
+   ){
+      continue
+   }
+
+   try{
+
+      const conteudo =
+      await arquivoZip.async('text')
+
+      const parser = new DOMParser()
+
+      const xml =
+      parser.parseFromString(
+         conteudo,
+         'text/xml'
+      )
+
+      await importarXml(xml)
+
+      total++
+
+   }catch(err){
+
+      console.error(
+        nomeArquivo,
+        err
+      )
+
+   }
+ }
+
+ Swal.fire(
+   'Sucesso',
+   `${total} XML(s) importados`,
+   'success'
+ )
+
+ carregar()
+}
+
+function getTag(parent, tag){
+
+ const el = parent.querySelector(tag)
+
+ return el ? el.textContent : null
+}
+
+async function importarXml(xml){
+
+ const infCte = xml.querySelector('infCte')
+ const emit = xml.querySelector('emit')
+ const rem = xml.querySelector('rem')
+ const dest = xml.querySelector('dest')
+ const vPrest = xml.querySelector('vPrest')
+ const infCarga = xml.querySelector('infCarga')
+ const ide = xml.querySelector('ide')
+
+ const chave =
+ infCte?.getAttribute('Id')
+ ?.replace('CTe','')
+
+ const chaveNfe =
+ xml.querySelector('infNFe chave')
+ ?.textContent
+
+ let numeroNota = null
+
+ if(chaveNfe && chaveNfe.length >= 34){
+   numeroNota = chaveNfe.substring(25,34)
+ }
+
+ const observacao =
+ xml.querySelector('xObs')
+ ?.textContent || ''
+
+ let peso = ''
+ let volumes = ''
+
+const pesoMatch =
+ observacao.match(/PESO\s+(\d+)/i)
+
+const volumeMatch =
+ observacao.match(/VOL\s+(\d+)/i)
+
+if(pesoMatch){
+   peso = pesoMatch[1]
+}
+
+if(volumeMatch){
+   volumes = volumeMatch[1]
+}
+
+ let tomador = ''
+
+ const toma =
+ xml.querySelector('toma3 toma')
+ ?.textContent
+
+ switch(toma){
+
+   case '0':
+     tomador='REMETENTE'
+     break
+
+   case '1':
+     tomador='EXPEDIDOR'
+     break
+
+   case '2':
+     tomador='RECEBEDOR'
+     break
+
+   case '3':
+     tomador='DESTINATARIO'
+     break
+
+   case '4':
+     tomador='OUTROS'
+     break
+ }
+
+ const dados = {
+
+   chave_cte: chave,
+
+   numero_cte: getTag(ide,'nCT'),
+
+   emitente: getTag(emit,'xNome'),
+
+   remetente: getTag(rem,'xNome'),
+   remetente_cnpj: getTag(rem,'CNPJ'),
+
+   destinatario: getTag(dest,'xNome'),
+   destinatario_cnpj: getTag(dest,'CNPJ'),
+
+   numero_nota: numeroNota,
+
+  valor_nota:
+xml.querySelector('vCarga')?.textContent || null,
+
+   valor_cte: getTag(vPrest,'vTPrest'),
+
+   peso,
+
+   volumes,
+
+   tomador,
+
+   cidade_origem: getTag(ide,'xMunIni'),
+
+   cidade_destino: getTag(ide,'xMunFim'),
+
+   uf_origem: getTag(ide,'UFIni'),
+
+   uf_destino: getTag(ide,'UFFim'),
+
+   data_emissao: getTag(ide,'dhEmi'),
+
+   status_consulta:'xml_importado'
+ }
+
+ const { data:existente } =
+ await client
+ .from('documentos')
+ .select('id')
+ .eq('chave_cte',chave)
+ .maybeSingle()
+
+ if(existente){
+
+   await client
+   .from('documentos')
+   .update(dados)
+   .eq('id',existente.id)
+
+ }else{
+
+   await client
+   .from('documentos')
+   .insert([dados])
+ }
+
+}
+

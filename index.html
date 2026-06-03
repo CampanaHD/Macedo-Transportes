@@ -22,6 +22,7 @@
         <button onclick="mostrarTela('rastreio')">Rastreio</button>
         <button onclick="mostrarTela('baixa')">Baixa</button>
         <button onclick="acessarAcompanhamento()">Acompanhamento</button>
+        <button onclick="mostrarTela('importacao')">Importar XML</button>
     </div>
 </div>
 
@@ -101,7 +102,7 @@
             <button class="btn-gerar" onclick="rastrearCte()">Buscar</button>
         </div>
 
-        <div id="resultadoRastreio"></div>
+        <div id="resultadoRastreio" class="rastreio-container"></div>
     </div>
 </div>
 
@@ -238,6 +239,22 @@
 
 </div>
 
+<div id="importacaoTela" class="hidden">
+
+<div class="card">
+
+<h2>Importação de CT-es</h2>
+
+<input type="file" id="zipXml" accept=".zip">
+
+<button class="btn-gerar" onclick="importarZip()">
+Importar XMLs
+</button>
+
+</div>
+
+</div>
+
 <div id="modal" class="modal hidden">
 
     <div class="modal-content">
@@ -286,6 +303,7 @@
 </div>
 
 <script src="app.js?v=801"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 </body>
 </html>
