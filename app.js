@@ -1084,3 +1084,22 @@ async function abrir(numero){
    document.getElementById('scanner')?.focus()
  },200)
 }
+
+async function acessarAcompanhamento(){
+
+ const { value: senha } = await Swal.fire({
+   title:'Área Restrita',
+   input:'password',
+   inputPlaceholder:'Digite a senha',
+   showCancelButton:true
+ })
+
+ if(!senha) return
+
+ if(senha !== '123456'){
+   Swal.fire('Senha incorreta')
+   return
+ }
+
+ mostrarTela('acompanhamento')
+}
