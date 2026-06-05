@@ -599,3 +599,6 @@ body.dark #btnTema{
     background:red;
     transform:translateY(-50%);
 }
+.hidden{
+    display:none !important;
+}

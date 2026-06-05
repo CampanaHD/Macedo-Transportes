@@ -1784,49 +1784,50 @@ function fecharLeitor(){
 }
 
 
+let leitorZXing = null
+
 async function abrirLeitorCamera(){
 
     try{
 
-        leitorZXing =
-        new ZXing.BrowserMultiFormatReader()
+        document
+            .getElementById('scanner-container')
+            .classList.remove('hidden')
+
+        leitorZXing = new ZXing.BrowserMultiFormatReader()
 
         const video =
-        document.getElementById('videoScanner')
+            document.getElementById('videoScanner')
 
         const devices =
-        await ZXing.BrowserCodeReader.listVideoInputDevices()
+            await navigator.mediaDevices.getUserMedia({
+                video:{
+                    facingMode:"environment"
+                }
+            })
 
-        let cameraTraseira = devices[0]
+        video.srcObject = devices
+        video.play()
 
-        const traseira = devices.find(d=>
-            d.label.toLowerCase().includes('back') ||
-            d.label.toLowerCase().includes('rear')
-        )
-
-        if(traseira){
-            cameraTraseira = traseira
-        }
-
-        leitorZXing.decodeFromVideoDevice(
-            cameraTraseira.deviceId,
+        leitorZXing.decodeFromVideoElement(
             video,
-            async (result,err)=>{
+            (result,err)=>{
 
                 if(result){
 
                     const codigo =
-                    result.text.replace(/\D/g,'')
+                        result.text.replace(/\D/g,'')
 
-                    console.log(codigo)
+                    console.log("Lido:",codigo)
 
                     if(codigo.length >= 44){
 
                         document
-                        .getElementById('scanner')
-                        .value = codigo.substring(0,44)
+                            .getElementById('scanner')
+                            .value =
+                            codigo.substring(0,44)
 
-                        await inserirManual()
+                        inserirManual()
 
                         fecharLeitor()
                     }
@@ -1838,8 +1839,10 @@ async function abrirLeitorCamera(){
 
         console.error(e)
 
-        Swal.fire(
-            'Erro ao acessar câmera'
-        )
+        Swal.fire({
+            icon:'error',
+            title:'Erro',
+            text:e.message
+        })
     }
 }
