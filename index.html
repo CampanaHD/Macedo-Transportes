@@ -274,16 +274,16 @@ Importar XMLs
 
         <div id="msgScanner" class="msg-scanner"></div>
         <div class="grid">
-            <input
-    id="scanner"
-    placeholder="Digite/Bipe a chave CT-e"
-    onkeypress="if(event.key==='Enter')inserirManual()"
->
-
+            <input id="scanner" placeholder="Digite/Bipe a chave CT-e" onkeypress="if(event.key==='Enter')inserirManual()">
+        
             <button class="btn-cte" onclick="inserirManual()">
                 Inserir
             </button>
+             <button class="btn-gerar" onclick="abrirLeitorCamera()">
+        📷 Ler CT-e
+    </button>
         </div>
+        <div id="camera-reader"></div>
 
         <table>
             <thead>
@@ -312,6 +312,7 @@ Importar XMLs
 
 <script src="app.js?v=801"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode"></script>
 
 </body>
 </html>

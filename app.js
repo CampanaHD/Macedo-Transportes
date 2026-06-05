@@ -172,6 +172,7 @@ async function cancelar(id){
 // }
 
 function fechar(){
+   fecharLeitor()
  document.getElementById('modal').classList.add('hidden')
 }
 
@@ -1736,4 +1737,56 @@ function alternarTema(){
     )
 
     aplicarTema()
+}
+
+let leitorCamera = null
+
+function abrirLeitorCamera(){
+
+    const div = document.getElementById('camera-reader')
+
+    div.innerHTML = ''
+
+    leitorCamera = new Html5Qrcode("camera-reader")
+
+    leitorCamera.start(
+        {
+            facingMode:"environment"
+        },
+        {
+            fps:10,
+            qrbox:250
+        },
+        async (textoLido)=>{
+
+            const numeros =
+            textoLido.replace(/\D/g,'')
+
+            if(numeros.length >= 44){
+
+                document.getElementById('scanner').value =
+                numeros.substring(0,44)
+
+                await inserirManual()
+
+                fecharLeitor()
+            }
+        }
+    )
+}
+
+function fecharLeitor(){
+
+    if(leitorCamera){
+
+        leitorCamera.stop()
+        .then(()=>{
+
+            document.getElementById(
+                'camera-reader'
+            ).innerHTML=''
+
+        })
+        .catch(console.error)
+    }
 }

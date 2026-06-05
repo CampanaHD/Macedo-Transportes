@@ -562,3 +562,13 @@ body.dark #btnTema{
     background:#f8fafc;
     color:#111827;
 }
+
+#camera-reader{
+    width:100%;
+    max-width:500px;
+    margin-top:15px;
+}
+
+#camera-reader video{
+    border-radius:12px;
+}
