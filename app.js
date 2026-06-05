@@ -1813,25 +1813,30 @@ async function abrirLeitorCamera(){
             video,
             (result,err)=>{
 
+                // if(result){
+
+                //     const codigo =
+                //         result.text.replace(/\D/g,'')
+
+                //     console.log("Lido:",codigo)
+
+                //     if(codigo.length >= 44){
+
+                //         document
+                //             .getElementById('scanner')
+                //             .value =
+                //             codigo.substring(0,44)
+
+                //         inserirManual()
+
+                //         fecharLeitor()
+                //     }
+                // }
                 if(result){
 
-                    const codigo =
-                        result.text.replace(/\D/g,'')
+    alert(result.text)
 
-                    console.log("Lido:",codigo)
-
-                    if(codigo.length >= 44){
-
-                        document
-                            .getElementById('scanner')
-                            .value =
-                            codigo.substring(0,44)
-
-                        inserirManual()
-
-                        fecharLeitor()
-                    }
-                }
+}
             }
         )
 
