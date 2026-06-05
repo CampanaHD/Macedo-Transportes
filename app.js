@@ -1741,39 +1741,39 @@ function alternarTema(){
 
 let leitorCamera = null
 
-function abrirLeitorCamera(){
+// function abrirLeitorCamera(){
 
-    const div = document.getElementById('camera-reader')
+//     const div = document.getElementById('camera-reader')
 
-    div.innerHTML = ''
+//     div.innerHTML = ''
 
-    leitorCamera = new Html5Qrcode("camera-reader")
+//     leitorCamera = new Html5Qrcode("camera-reader")
 
-    leitorCamera.start(
-        {
-            facingMode:"environment"
-        },
-        {
-            fps:10,
-            qrbox:250
-        },
-        async (textoLido)=>{
+//     leitorCamera.start(
+//         {
+//             facingMode:"environment"
+//         },
+//         {
+//             fps:10,
+//             qrbox:250
+//         },
+//         async (textoLido)=>{
 
-            const numeros =
-            textoLido.replace(/\D/g,'')
+//             const numeros =
+//             textoLido.replace(/\D/g,'')
 
-            if(numeros.length >= 44){
+//             if(numeros.length >= 44){
 
-                document.getElementById('scanner').value =
-                numeros.substring(0,44)
+//                 document.getElementById('scanner').value =
+//                 numeros.substring(0,44)
 
-                await inserirManual()
+//                 await inserirManual()
 
-                fecharLeitor()
-            }
-        }
-    )
-}
+//                 fecharLeitor()
+//             }
+//         }
+//     )
+// }
 
 function fecharLeitor(){
 
