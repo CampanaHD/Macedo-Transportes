@@ -1777,16 +1777,69 @@ function abrirLeitorCamera(){
 
 function fecharLeitor(){
 
-    if(leitorCamera){
+    if(leitorZXing){
 
-        leitorCamera.stop()
-        .then(()=>{
+        leitorZXing.reset()
+    }
+}
+let leitorZXing = null
 
-            document.getElementById(
-                'camera-reader'
-            ).innerHTML=''
+async function abrirLeitorCamera(){
 
-        })
-        .catch(console.error)
+    try{
+
+        leitorZXing =
+        new ZXing.BrowserMultiFormatReader()
+
+        const video =
+        document.getElementById('videoScanner')
+
+        const devices =
+        await ZXing.BrowserCodeReader.listVideoInputDevices()
+
+        let cameraTraseira = devices[0]
+
+        const traseira = devices.find(d=>
+            d.label.toLowerCase().includes('back') ||
+            d.label.toLowerCase().includes('rear')
+        )
+
+        if(traseira){
+            cameraTraseira = traseira
+        }
+
+        leitorZXing.decodeFromVideoDevice(
+            cameraTraseira.deviceId,
+            video,
+            async (result,err)=>{
+
+                if(result){
+
+                    const codigo =
+                    result.text.replace(/\D/g,'')
+
+                    console.log(codigo)
+
+                    if(codigo.length >= 44){
+
+                        document
+                        .getElementById('scanner')
+                        .value = codigo.substring(0,44)
+
+                        await inserirManual()
+
+                        fecharLeitor()
+                    }
+                }
+            }
+        )
+
+    }catch(e){
+
+        console.error(e)
+
+        Swal.fire(
+            'Erro ao acessar câmera'
+        )
     }
 }
