@@ -1782,7 +1782,7 @@ function fecharLeitor(){
         leitorZXing.reset()
     }
 }
-let leitorZXing = null
+
 
 async function abrirLeitorCamera(){
 
