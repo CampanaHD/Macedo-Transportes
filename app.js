@@ -1183,6 +1183,7 @@ ${
 
 // ÚNICO DOMContentLoaded
 document.addEventListener('DOMContentLoaded',()=>{
+   aplicarTema()
 
  document.getElementById('buscarCte')?.addEventListener('keypress',e=>{
   if(e.key==='Enter') rastrearCte()
@@ -1691,3 +1692,48 @@ xml.querySelector('vCarga')?.textContent || null,
 
 }
 
+// ======================
+// TEMA ESCURO
+// ======================
+
+function aplicarTema(){
+
+    const tema =
+    localStorage.getItem('tema') || 'claro'
+
+    if(tema === 'escuro'){
+
+        document.body.classList.add('dark')
+
+        const btn =
+        document.getElementById('btnTema')
+
+        if(btn){
+            btn.innerHTML = '☀️ Modo Claro'
+        }
+
+    }else{
+
+        document.body.classList.remove('dark')
+
+        const btn =
+        document.getElementById('btnTema')
+
+        if(btn){
+            btn.innerHTML = '🌙 Modo Escuro'
+        }
+    }
+}
+
+function alternarTema(){
+
+    const escuro =
+    document.body.classList.toggle('dark')
+
+    localStorage.setItem(
+        'tema',
+        escuro ? 'escuro' : 'claro'
+    )
+
+    aplicarTema()
+}

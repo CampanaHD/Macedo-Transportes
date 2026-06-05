@@ -472,3 +472,93 @@ background:linear-gradient(135deg,#16a34a,#15803d);
     font-weight:bold;
     color:#0f172a;
 }
+
+/* ==========================
+   MODO ESCURO
+========================== */
+
+body.dark{
+    background:#0f172a;
+    color:#e2e8f0;
+}
+
+body.dark .topbar{
+    background:#020617;
+}
+
+body.dark .card,
+body.dark .card-mini,
+body.dark .modal-content,
+body.dark .info-box,
+body.dark .historico{
+    background:#1e293b;
+    color:#e2e8f0;
+    box-shadow:0 4px 15px rgba(0,0,0,.35);
+}
+
+body.dark table{
+    color:#e2e8f0;
+}
+
+body.dark th{
+    background:#334155;
+    color:#fff;
+}
+
+body.dark td{
+    border-bottom:1px solid #475569;
+}
+
+body.dark input,
+body.dark select,
+body.dark textarea{
+    background:#334155;
+    color:white;
+    border:1px solid #475569;
+}
+
+body.dark input::placeholder{
+    color:#cbd5e1;
+}
+
+body.dark .info-linha{
+    border-bottom:1px dashed #475569;
+}
+
+body.dark .rastreio-box{
+    background:#334155;
+    border-color:#475569;
+}
+
+body.dark .navbar button{
+    background:#334155;
+}
+
+body.dark .data-info{
+    color:#94a3b8;
+}
+
+body.dark .footer{
+    background:#020617;
+    color:#cbd5e1;
+}
+
+body.dark .btn-ver{
+    background:#16a34a;
+}
+
+body.dark .modal{
+    background:rgba(0,0,0,.85);
+}
+
+/* Botão tema */
+
+#btnTema{
+    background:#334155;
+    color:white;
+}
+
+body.dark #btnTema{
+    background:#f8fafc;
+    color:#111827;
+}
