@@ -751,10 +751,11 @@ ${
 
 <div style="margin-top:15px;display:flex;gap:10px;flex-wrap:wrap;">
 
-    <button class="btn-pdf"
-      onclick="abrirDanfe('${encontrado.chave_cte}')">
-      Abrir DANFE
-    </button>
+  <button
+ class="btn-pdf"
+ onclick="abrirDanfeNfe('${encontrado.chave_nfe || ''}')">
+ DANFE NF-e
+</button>
 
     <button class="btn-gerar"
       onclick="baixarDanfe('${encontrado.chave_cte}')">
@@ -1306,6 +1307,19 @@ async function gerarDanfe(chave, baixar=false){
  }
 }
 
+function abrirDanfeNfe(chaveNfe){
+
+ if(!chaveNfe){
+   Swal.fire('Chave da NF-e não encontrada')
+   return
+ }
+
+ window.open(
+   `https://meudanfe.com.br/?chave=${chaveNfe}`,
+   '_blank'
+ )
+}
+
 function abrirDanfe(chave){
  gerarDanfe(chave,false)
 }
@@ -1580,25 +1594,70 @@ async function importarXml(xml){
    numeroNota = chaveNfe.substring(25,34)
  }
 
- const observacao =
- xml.querySelector('xObs')
- ?.textContent || ''
+let peso = null
+let quantidadeVolumes = null
+let volumeM3 = null
 
- let peso = ''
- let volumes = ''
+xml.querySelectorAll('infQ').forEach(item => {
 
-const pesoMatch =
- observacao.match(/PESO\s+(\d+)/i)
+    const tpMed =
+        item.querySelector('tpMed')
+        ?.textContent
+        ?.toUpperCase() || ''
 
-const volumeMatch =
- observacao.match(/VOL\s+(\d+)/i)
+    const qCarga =
+        item.querySelector('qCarga')
+        ?.textContent
 
-if(pesoMatch){
-   peso = pesoMatch[1]
+    if(
+        tpMed.includes('PESO') ||
+        tpMed.includes('KG')
+    ){
+        peso = Number(qCarga)
+    }
+
+    if(tpMed.includes('VOLUMES')){
+        quantidadeVolumes = Number(qCarga)
+    }
+
+    if(tpMed === 'VOLUME'){
+        volumeM3 = Number(qCarga)
+    }
+
+})
+
+const observacao =
+    xml.querySelector('xObs')
+    ?.textContent
+    ?.toUpperCase() || ''
+
+if(!quantidadeVolumes){
+
+    const matchVol =
+        observacao.match(
+            /(VOL|VOLUMES?)\.?\s*(\d+)/i
+        )
+
+    if(matchVol){
+        quantidadeVolumes =
+            Number(matchVol[2])
+    }
 }
 
-if(volumeMatch){
-   volumes = volumeMatch[1]
+if(!peso){
+
+    const matchPeso =
+        observacao.match(
+            /PESO(?:\s*BRUTO)?\s*([\d.,]+)/i
+        )
+
+    if(matchPeso){
+
+        peso = Number(
+            matchPeso[1]
+            .replace(',','.')
+        )
+    }
 }
 
  let tomador = ''
@@ -1636,6 +1695,9 @@ if(volumeMatch){
 
    numero_cte: getTag(ide,'nCT'),
 
+   numero_nota: numeroNota,
+   chave_nfe: chaveNfe,
+
    emitente: getTag(emit,'xNome'),
 
    remetente: getTag(rem,'xNome'),
@@ -1651,11 +1713,13 @@ xml.querySelector('vCarga')?.textContent || null,
 
    valor_cte: getTag(vPrest,'vTPrest'),
 
-   peso,
+     peso: peso,
 
-   volumes,
+   quantidade_volumes: quantidadeVolumes,
 
-   tomador,
+   volume_m3: volumeM3,
+
+   tomador_frete: tomador,
 
    cidade_origem: getTag(ide,'xMunIni'),
 
