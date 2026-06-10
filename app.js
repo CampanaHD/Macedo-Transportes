@@ -571,19 +571,7 @@ const busca=buscaOriginal.replace(/\D/g,'').replace(/^0+/,'')
 
 <p><b>Status Atual:</b> ${encontrado.status_entrega||'-'}</p>
 
-   <p><b>Nota:</b> ${encontrado.numero_nota||'-'}</p>
-
-   <hr>
-
-   <p><b>Remetente:</b> ${encontrado.remetente||'-'}</p>
-   <p><b>CNPJ Remetente:</b> ${encontrado.remetente_cnpj||'-'}</p>
-
-   <hr>
-
-   <p><b>Destinatário:</b> ${encontrado.destinatario||'-'}</p>
-   <p><b>CNPJ Destinatário:</b> ${encontrado.destinatario_cnpj||'-'}</p>
-
-   <hr>
+ 
 
    <div class="rastreio-grid">
 
@@ -1584,15 +1572,22 @@ async function importarXml(xml){
  infCte?.getAttribute('Id')
  ?.replace('CTe','')
 
- const chaveNfe =
- xml.querySelector('infNFe chave')
- ?.textContent
+ const notas = []
+const chavesNfe = []
 
- let numeroNota = null
+xml.querySelectorAll('infNFe').forEach(nfe => {
 
- if(chaveNfe && chaveNfe.length >= 34){
-   numeroNota = chaveNfe.substring(25,34)
- }
+   const chave = nfe.querySelector('chave')?.textContent
+
+   if(chave){
+
+      chavesNfe.push(chave)
+
+      if(chave.length >= 34){
+         notas.push(chave.substring(25,34))
+      }
+   }
+})
 
 let peso = null
 let quantidadeVolumes = null
@@ -1695,8 +1690,8 @@ if(!peso){
 
    numero_cte: getTag(ide,'nCT'),
 
-   numero_nota: numeroNota,
-   chave_nfe: chaveNfe,
+   numero_nota: notas.join(', '),
+   chave_nfe: chavesNfe.join(', '),
 
    emitente: getTag(emit,'xNome'),
 
@@ -1706,14 +1701,12 @@ if(!peso){
    destinatario: getTag(dest,'xNome'),
    destinatario_cnpj: getTag(dest,'CNPJ'),
 
-   numero_nota: numeroNota,
-
-  valor_nota:
-xml.querySelector('vCarga')?.textContent || null,
+   valor_nota:
+   xml.querySelector('vCarga')?.textContent || null,
 
    valor_cte: getTag(vPrest,'vTPrest'),
 
-     peso: peso,
+   peso: peso,
 
    quantidade_volumes: quantidadeVolumes,
 
@@ -1732,7 +1725,7 @@ xml.querySelector('vCarga')?.textContent || null,
    data_emissao: getTag(ide,'dhEmi'),
 
    status_consulta:'xml_importado'
- }
+}
 
  const { data:existente } =
  await client
