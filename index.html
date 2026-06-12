@@ -299,6 +299,40 @@ onclick="buscarCnpj()">
 Buscar
 </button>
 
+
+<div class="grid-cotacao">
+
+<input
+ id="razaoSocial"
+ placeholder="Razão Social"
+ readonly
+>
+
+<input
+ id="cidadeDestino"
+ placeholder="Cidade"
+ readonly
+>
+
+<input
+ id="estadoDestino"
+ placeholder="UF"
+ readonly
+>
+
+<input
+ id="cepDestino"
+ placeholder="CEP"
+ readonly
+>
+
+<input
+ id="enderecoDestino"
+ placeholder="Endereço"
+ readonly
+>
+
+</div>
 </div>
 </div>
 
@@ -323,40 +357,14 @@ Buscar
 <input
 id="valorNota"
 type="number"
-step="0.01"
-placeholder="0,00"
+placeholder="Valor da Nota"
+oninput="calcularFrete()"
 >
 </div>
 
-<div>
-<label>Altura (cm)</label>
-
-<input
-id="altura"
-type="number"
-oninput="calcularCubagem()"
->
-</div>
-
-<div>
-<label>Largura (cm)</label>
-
-<input
-id="largura"
-type="number"
-oninput="calcularCubagem()"
->
-</div>
-
-<div>
-<label>Comprimento (cm)</label>
-
-<input
-id="comprimento"
-type="number"
-oninput="calcularCubagem()"
->
-</div>
+<input id="altura" oninput="calcularCubagem()">
+<input id="largura" oninput="calcularCubagem()">
+<input id="comprimento" oninput="calcularCubagem()">
 
 <div>
 <label>Cubagem (m³)</label>
@@ -378,6 +386,17 @@ class="btn-gerar"
 onclick="calcularCotacao()">
 Calcular Frete
 </button>
+
+<button
+ class="btn-gerar"
+ onclick="calcularFrete()">
+ Calcular Frete
+</button>
+
+<div
+ id="resultadoFrete"
+ class="resultado-cotacao">
+</div>
 
 </div>
 
