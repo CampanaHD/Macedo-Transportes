@@ -417,7 +417,10 @@ async function pdf(){
 
 async function atualizarDashboardBaixa(){
 
- const {data:docs}=await client.from('documentos').select('*')
+ const {data:docs}=await client
+.from('documentos')
+.select('*')
+.range(0,5000)
 
  document.getElementById('pendentesTotal').innerText=docs.filter(d=>d.status_entrega!=='ENTREGUE').length
  document.getElementById('entreguesHoje').innerText=docs.filter(d=>(d.data_baixa||'').startsWith(new Date().toLocaleDateString('sv-SE'))).length
@@ -520,15 +523,16 @@ async function rastrearCte(){
 const busca=buscaOriginal.replace(/\D/g,'').replace(/^0+/,'')
 
  const {data,error}=await client
- .from('documentos')
- .select(`
+.from('documentos')
+.select(`
    *,
    viagens(
      placa,
      motorista,
      transportadora
    )
- `)
+`)
+.range(0, 5000)
 
  if(error){
   Swal.fire(error.message)
@@ -766,8 +770,8 @@ ${
 async function carregarAcompanhamento(dataInicio=null,dataFim=null){
 
  const { data:docs, error } = await client
- .from('documentos')
- .select(`
+.from('documentos')
+.select(`
    *,
    viagens(
      numero,
@@ -775,7 +779,8 @@ async function carregarAcompanhamento(dataInicio=null,dataFim=null){
      motorista,
      transportadora
    )
- `)
+`)
+.range(0, 5000)
 
  const tbody=document.getElementById('listaAcompanhamento')
 
@@ -1071,15 +1076,16 @@ async function buscarAcompanhamento(){
 async function verEntregas(placa){
 
  const {data:docs}=await client
- .from('documentos')
- .select(`
+.from('documentos')
+.select(`
    *,
    viagens(
     placa,
     motorista,
     transportadora
    )
- `)
+`)
+.range(0,5000)
 
  const docsPlaca=(docs||[]).filter(
   d=>d.viagens?.placa===placa
@@ -1907,4 +1913,217 @@ async function abrirLeitorCamera(){
             text:e.message
         })
     }
+}
+
+
+async function buscarCnpj(){
+
+ const cnpj =
+ document
+ .getElementById('cnpjDestino')
+ .value
+ .replace(/\D/g,'')
+
+ if(cnpj.length !== 14){
+   Swal.fire('CNPJ inválido')
+   return
+ }
+
+ try{
+
+   const resp =
+   await fetch(
+   `https://brasilapi.com.br/api/cnpj/v1/${cnpj}`
+   )
+
+   const dados =
+   await resp.json()
+
+   document.getElementById('razaoDestino').value =
+   dados.razao_social || ''
+
+   document.getElementById('cidadeDestino').value =
+   dados.municipio || ''
+
+   document.getElementById('estadoDestino').value =
+   dados.uf || ''
+
+ }catch{
+
+   Swal.fire(
+   'Erro ao consultar CNPJ'
+   )
+
+ }
+
+}
+
+function calcularCubagem(){
+
+ const altura =
+ Number(
+ document.getElementById('altura').value
+ )
+
+ const largura =
+ Number(
+ document.getElementById('largura').value
+ )
+
+ const comprimento =
+ Number(
+ document.getElementById('comprimento').value
+ )
+
+ if(
+ !altura ||
+ !largura ||
+ !comprimento
+ ){
+   return
+ }
+
+ const cubagem =
+ (altura * largura * comprimento)
+ / 1000000
+
+ document.getElementById('cubagem').value =
+ cubagem.toFixed(3)
+}
+const percentuais = {
+
+ SP:0.11,
+ RJ:0.11,
+ ES:0.11,
+
+ GO:0.12,
+ DF:0.12,
+
+ MT:0.13,
+ MS:0.13,
+
+ PR:0.14,
+ SC:0.14,
+
+ RS:0.15
+
+}
+const mgGrupo1=[
+'BELO HORIZONTE',
+'CONTAGEM',
+'BETIM'
+]
+
+const mgGrupo2=[
+'UBERLANDIA',
+'UBERABA',
+'ARAGUARI'
+]
+
+const mgGrupo3=[
+'MONTES CLAROS',
+'JANUARIA',
+'PIRAPORA'
+]
+
+function calcularCotacao(){
+
+ const valorNota =
+ Number(
+ document.getElementById('valorNota').value
+ )
+
+ const cidade =
+ document
+ .getElementById('cidadeDestino')
+ .value
+ .toUpperCase()
+
+ const uf =
+ document
+ .getElementById('estadoDestino')
+ .value
+ .toUpperCase()
+
+ const cubagem =
+ Number(
+ document.getElementById('cubagem').value
+ )
+
+ let percentual =
+ percentuais[uf] || 0.11
+
+ if(uf === 'MG'){
+
+   if(
+   mgGrupo1.includes(cidade)
+   ){
+      percentual = 0.11
+   }
+
+   else if(
+   mgGrupo2.includes(cidade)
+   ){
+      percentual = 0.12
+   }
+
+   else{
+      percentual = 0.13
+   }
+
+ }
+
+ const frete =
+ valorNota * percentual
+
+ document.getElementById(
+ 'resultadoCotacao'
+ ).innerHTML = `
+
+ <div class="resultado-cotacao">
+
+ <h3>Resultado da Cotação</h3>
+
+ <p>
+ <b>Cidade:</b>
+ ${cidade}
+ </p>
+
+ <p>
+ <b>UF:</b>
+ ${uf}
+ </p>
+
+ <p>
+ <b>Cubagem:</b>
+ ${cubagem.toFixed(3)} m³
+ </p>
+
+ <p>
+ <b>Percentual:</b>
+ ${(percentual*100).toFixed(2)}%
+ </p>
+
+ <p>
+ <b>Valor da Nota:</b>
+ R$ ${valorNota.toLocaleString('pt-BR',{
+ minimumFractionDigits:2
+ })}
+ </p>
+
+ <p style="
+ font-size:22px;
+ color:#16a34a;
+ font-weight:bold;
+ ">
+
+ FRETE:
+ R$ ${frete.toLocaleString('pt-BR',{
+ minimumFractionDigits:2
+ })}
+
+ </p>
+
+ </div>
+ `
 }

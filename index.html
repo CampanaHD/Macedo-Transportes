@@ -31,6 +31,7 @@
         <button onclick="mostrarTela('baixa')">Baixa</button>
         <button onclick="acessarAcompanhamento()">Acompanhamento</button>
         <button onclick="mostrarTela('importacao')">Importar XML</button>
+        <button onclick="mostrarTela('cotacao')">💰 Cotação</button>
     </div>
 </div>
 
@@ -258,6 +259,130 @@
 <button class="btn-gerar" onclick="importarZip()">
 Importar XMLs
 </button>
+
+</div>
+
+</div>
+
+<div id="cotacaoTela" class="container hidden">
+
+<div class="card">
+
+<h2>Calculadora de Cotação</h2>
+
+<div class="grid-cotacao">
+
+<div>
+<label>Remetente</label>
+
+<select id="remetente">
+<option value="57211997000146">
+MACEDO TRANSPORTES
+</option>
+</select>
+</div>
+
+<div>
+<label>CNPJ Destinatário</label>
+
+<div class="linha-cnpj">
+
+<input
+id="cnpjDestino"
+placeholder="Digite o CNPJ"
+>
+
+<button
+class="btn-gerar"
+onclick="buscarCnpj()">
+Buscar
+</button>
+
+</div>
+</div>
+
+<div>
+<label>Razão Social</label>
+<input id="razaoDestino" readonly>
+</div>
+
+<div>
+<label>Cidade</label>
+<input id="cidadeDestino" readonly>
+</div>
+
+<div>
+<label>Estado</label>
+<input id="estadoDestino" readonly>
+</div>
+
+<div>
+<label>Valor da Nota</label>
+
+<input
+id="valorNota"
+type="number"
+step="0.01"
+placeholder="0,00"
+>
+</div>
+
+<div>
+<label>Altura (cm)</label>
+
+<input
+id="altura"
+type="number"
+oninput="calcularCubagem()"
+>
+</div>
+
+<div>
+<label>Largura (cm)</label>
+
+<input
+id="largura"
+type="number"
+oninput="calcularCubagem()"
+>
+</div>
+
+<div>
+<label>Comprimento (cm)</label>
+
+<input
+id="comprimento"
+type="number"
+oninput="calcularCubagem()"
+>
+</div>
+
+<div>
+<label>Cubagem (m³)</label>
+
+<input
+id="cubagem"
+type="number"
+step="0.001"
+placeholder="0.000"
+>
+</div>
+
+</div>
+
+<div style="margin-top:20px">
+
+<button
+class="btn-gerar"
+onclick="calcularCotacao()">
+Calcular Frete
+</button>
+
+</div>
+
+<div id="resultadoCotacao"></div>
+
+</div>
 
 </div>
 
