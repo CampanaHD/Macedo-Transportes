@@ -32,6 +32,7 @@
         <button onclick="acessarAcompanhamento()">Acompanhamento</button>
         <button onclick="mostrarTela('importacao')">Importar XML</button>
         <button onclick="mostrarTela('cotacao')">💰 Cotação</button>
+        
     </div>
 </div>
 
@@ -277,7 +278,7 @@ Importar XMLs
 
 <select id="remetente">
 <option value="57211997000146">
-MACEDO TRANSPORTES
+MARCON
 </option>
 </select>
 </div>
@@ -381,6 +382,135 @@ Calcular Frete
 </div>
 
 <div id="resultadoCotacao"></div>
+
+</div>
+
+<button onclick="mostrarTela('cotacaoTela')">
+Cotação
+</button>
+
+
+
+<div id="cotacaoTela" class="container hidden">
+
+<div class="tabs-cotacao">
+
+<button
+class="tab-btn ativo"
+onclick="abrirAbaCotacao('nova')">
+Nova Cotação
+</button>
+
+<button
+class="tab-btn"
+onclick="abrirAbaCotacao('taxas')">
+Cadastro de Taxas
+</button>
+
+</div>
+
+<div id="abaNovaCotacao">
+
+<div class="card">
+
+<h2>Nova Cotação</h2>
+
+<div class="grid">
+
+<select id="remetente">
+
+<option value="57211997000146">
+MACEDO TRANSPORTES
+</option>
+
+</select>
+
+<input
+id="cnpjDestino"
+placeholder="CNPJ Destinatário"
+>
+
+<button
+class="btn-gerar"
+onclick="buscarCnpj()">
+Buscar CNPJ
+</button>
+
+<input id="razaoSocial" readonly>
+<input id="cidadeDestino" readonly>
+<input id="estadoDestino" readonly>
+
+<input id="valorNota" placeholder="Valor Nota">
+
+<input
+id="altura"
+placeholder="Altura"
+onkeyup="calcularCubagem()"
+>
+
+<input
+id="largura"
+placeholder="Largura"
+onkeyup="calcularCubagem()"
+>
+
+<input
+id="comprimento"
+placeholder="Comprimento"
+onkeyup="calcularCubagem()"
+>
+
+<input
+id="cubagem"
+placeholder="Cubagem"
+>
+
+<input
+id="percentualAplicado"
+readonly
+>
+
+<input
+id="valorFrete"
+readonly
+>
+
+</div>
+
+<button
+class="btn-finalizar"
+onclick="calcularCotacao()">
+Calcular Frete
+</button>
+
+</div>
+
+</div>
+
+<div id="abaTaxas" style="display:none;">
+
+<div class="card">
+
+<h2>Cadastro de Taxas</h2>
+
+<table>
+
+<thead>
+<tr>
+<th>UF</th>
+<th>Cidade</th>
+<th>%</th>
+<th>Ação</th>
+</tr>
+</thead>
+
+<tbody id="listaTaxas"></tbody>
+
+</table>
+
+</div>
+
+</div>
 
 </div>
 

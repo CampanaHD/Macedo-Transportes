@@ -1916,214 +1916,119 @@ async function abrirLeitorCamera(){
 }
 
 
-async function buscarCnpj(){
 
- const cnpj =
- document
- .getElementById('cnpjDestino')
- .value
- .replace(/\D/g,'')
-
- if(cnpj.length !== 14){
-   Swal.fire('CNPJ inválido')
-   return
- }
-
- try{
-
-   const resp =
-   await fetch(
-   `https://brasilapi.com.br/api/cnpj/v1/${cnpj}`
-   )
-
-   const dados =
-   await resp.json()
-
-   document.getElementById('razaoDestino').value =
-   dados.razao_social || ''
-
-   document.getElementById('cidadeDestino').value =
-   dados.municipio || ''
-
-   document.getElementById('estadoDestino').value =
-   dados.uf || ''
-
- }catch{
-
-   Swal.fire(
-   'Erro ao consultar CNPJ'
-   )
-
- }
-
-}
 
 function calcularCubagem(){
 
- const altura =
+ const a =
  Number(
- document.getElementById('altura').value
+ document.getElementById('altura').value || 0
  )
 
- const largura =
+ const l =
  Number(
- document.getElementById('largura').value
+ document.getElementById('largura').value || 0
  )
 
- const comprimento =
+ const c =
  Number(
- document.getElementById('comprimento').value
+ document.getElementById('comprimento').value || 0
  )
-
- if(
- !altura ||
- !largura ||
- !comprimento
- ){
-   return
- }
 
  const cubagem =
- (altura * largura * comprimento)
- / 1000000
+ (a*l*c)/1000000
 
  document.getElementById('cubagem').value =
  cubagem.toFixed(3)
 }
-const percentuais = {
 
- SP:0.11,
- RJ:0.11,
- ES:0.11,
+async function calcularCotacao(){
 
- GO:0.12,
- DF:0.12,
+ const uf =
+ document.getElementById('estadoDestino').value
 
- MT:0.13,
- MS:0.13,
-
- PR:0.14,
- SC:0.14,
-
- RS:0.15
-
-}
-const mgGrupo1=[
-'BELO HORIZONTE',
-'CONTAGEM',
-'BETIM'
-]
-
-const mgGrupo2=[
-'UBERLANDIA',
-'UBERABA',
-'ARAGUARI'
-]
-
-const mgGrupo3=[
-'MONTES CLAROS',
-'JANUARIA',
-'PIRAPORA'
-]
-
-function calcularCotacao(){
+ const cidade =
+ document.getElementById('cidadeDestino')
+ .value
+ .toUpperCase()
 
  const valorNota =
  Number(
  document.getElementById('valorNota').value
  )
 
- const cidade =
- document
- .getElementById('cidadeDestino')
- .value
- .toUpperCase()
+ let percentual=0
 
- const uf =
- document
- .getElementById('estadoDestino')
- .value
- .toUpperCase()
+ const {data} =
+ await client
+ .from('taxas_cotacao')
+ .select('*')
+ .eq('uf',uf)
+ .eq('ativo',true)
 
- const cubagem =
- Number(
- document.getElementById('cubagem').value
+ let taxaCidade =
+ data.find(
+ t=>t.cidade===cidade
  )
 
- let percentual =
- percentuais[uf] || 0.11
+ if(taxaCidade){
 
- if(uf === 'MG'){
+   percentual=
+   Number(taxaCidade.percentual)
 
-   if(
-   mgGrupo1.includes(cidade)
-   ){
-      percentual = 0.11
-   }
+ }else{
 
-   else if(
-   mgGrupo2.includes(cidade)
-   ){
-      percentual = 0.12
-   }
+   let taxaEstado =
+   data.find(
+     t=>t.cidade==='*'
+   )
 
-   else{
-      percentual = 0.13
-   }
+   percentual=
+   Number(taxaEstado.percentual)
 
  }
 
  const frete =
- valorNota * percentual
+ valorNota *
+ (percentual/100)
 
  document.getElementById(
- 'resultadoCotacao'
- ).innerHTML = `
+ 'percentualAplicado'
+ ).value =
+ percentual+'%'
 
- <div class="resultado-cotacao">
+ document.getElementById(
+ 'valorFrete'
+ ).value =
+ frete.toLocaleString(
+ 'pt-BR',
+ {
+  style:'currency',
+  currency:'BRL'
+ })
 
- <h3>Resultado da Cotação</h3>
+}
 
- <p>
- <b>Cidade:</b>
- ${cidade}
- </p>
+async function buscarCnpj(){
 
- <p>
- <b>UF:</b>
- ${uf}
- </p>
+ const cnpj =
+ document.getElementById('cnpjDestino')
+ .value.replace(/\D/g,'')
 
- <p>
- <b>Cubagem:</b>
- ${cubagem.toFixed(3)} m³
- </p>
+ const resp =
+ await fetch(
+ `https://brasilapi.com.br/api/cnpj/v1/${cnpj}`
+ )
 
- <p>
- <b>Percentual:</b>
- ${(percentual*100).toFixed(2)}%
- </p>
+ const dados =
+ await resp.json()
 
- <p>
- <b>Valor da Nota:</b>
- R$ ${valorNota.toLocaleString('pt-BR',{
- minimumFractionDigits:2
- })}
- </p>
+ document.getElementById('razaoSocial').value =
+ dados.razao_social || ''
 
- <p style="
- font-size:22px;
- color:#16a34a;
- font-weight:bold;
- ">
+ document.getElementById('cidadeDestino').value =
+ dados.municipio || ''
 
- FRETE:
- R$ ${frete.toLocaleString('pt-BR',{
- minimumFractionDigits:2
- })}
-
- </p>
-
- </div>
- `
+ document.getElementById('estadoDestino').value =
+ dados.uf || ''
 }
