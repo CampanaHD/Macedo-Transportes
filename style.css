@@ -633,7 +633,7 @@ gap:10px;
 .resultado-cotacao{
 margin-top:25px;
 padding:20px;
-background: purple;
+background:#f8fafc;
 border-radius:12px;
 border:1px solid #dbeafe;
 }
@@ -790,4 +790,11 @@ body.dark .submenu-cotacao button.ativo{
 
 body.dark #listaTaxas td{
     border-color:#475569;
+}
+
+.valor-frete{
+font-size:32px;
+font-weight:bold;
+color:#16a34a;
+margin-top:15px;
 }

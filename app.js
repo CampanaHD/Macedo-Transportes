@@ -7,6 +7,8 @@ let viagens=[]
 let viagemAtual=null
 let transportadoraSelecionada='MACEDO'
 
+let taxaEditando = null
+
 function agoraBrasil(){
  const agora=new Date()
  return `${agora.toLocaleDateString('sv-SE')} ${agora.toLocaleTimeString('pt-BR',{hour12:false})}`
@@ -1919,29 +1921,29 @@ async function abrirLeitorCamera(){
 
 function calcularCubagem(){
 
- const altura =
- Number(
-  document.getElementById('altura').value
- ) || 0
+    const altura =
+    Number(
+    document.getElementById('altura').value
+    ) || 0
 
- const largura =
- Number(
-  document.getElementById('largura').value
- ) || 0
+    const largura =
+    Number(
+    document.getElementById('largura').value
+    ) || 0
 
- const comprimento =
- Number(
-  document.getElementById('comprimento').value
- ) || 0
+    const comprimento =
+    Number(
+    document.getElementById('comprimento').value
+    ) || 0
 
- const cubagem =
- (altura * largura * comprimento)
- / 1000000
+    const cubagem =
+    (altura * largura * comprimento)
+    / 1000000
 
- document.getElementById('cubagem').value =
- cubagem.toFixed(3)
+    document.getElementById('cubagem').value =
+    cubagem.toFixed(3)
 
- calcularFrete()
+     calcularFrete()
 }
 
 
@@ -1984,19 +1986,20 @@ async function buscarCnpj(){
         document.getElementById('estadoDestino').value =
         dados.uf || ''
 
-        document.getElementById('cepDestino').value =
-        dados.cep || ''
+      const cep = (dados.cep || '').replace(/\D/g,'')
 
-        document.getElementById('enderecoDestino').value =
-        (
-            dados.logradouro || ''
-        ) +
-        ', ' +
-        (
-            dados.numero || ''
-        )
+document.getElementById('cepDestino').value =
+cep.replace(
+/(\d{5})(\d{3})/,
+'$1-$2'
+)
 
-        calcularFrete()
+      document.getElementById('enderecoDestino').value =
+`${dados.logradouro || ''}
+ ${dados.numero || ''}
+ ${dados.bairro || ''}`
+
+       
 
     }catch(e){
 
@@ -2009,85 +2012,347 @@ async function buscarCnpj(){
         )
 
     }
+await calcularFrete()
+}
 
+function abrirAbaCotacao(aba){
+
+    document.getElementById('abaNovaCotacao')
+    .style.display = 'none'
+
+    document.getElementById('abaTaxas')
+    .style.display = 'none'
+
+    document
+    .querySelectorAll('.tab-btn')
+    .forEach(btn=>{
+        btn.classList.remove('ativo')
+    })
+
+    if(aba === 'nova'){
+
+    document.getElementById(
+    'abaNovaCotacao'
+    ).style.display = 'block'
+
+    document
+    .querySelectorAll('.tab-btn')[0]
+    .classList.add('ativo')
+
+}else{
+
+    document.getElementById(
+    'abaTaxas'
+    ).style.display = 'block'
+
+    document
+    .querySelectorAll('.tab-btn')[1]
+    .classList.add('ativo')
+
+    carregarTaxas()
+}
 }
 
 async function calcularFrete(){
 
- const uf =
- document.getElementById('estadoDestino')
- .value
+    const uf =
+    document.getElementById('estadoDestino')
+    ?.value || ''
 
- const cidade =
- (
- document.getElementById('cidadeDestino')
- .value || ''
- ).toUpperCase()
+    const cidade =
+    (
+        document.getElementById('cidadeDestino')
+        ?.value || ''
+    ).toUpperCase()
 
- const valorNota =
- Number(
- document.getElementById('valorNota')
- .value
- ) || 0
+    const valorNota =
+    Number(
+        document.getElementById('valorNota')
+        ?.value
+    ) || 0
 
- let percentual = 0.11
+    if(!uf || valorNota <= 0){
 
- if(uf === 'GO' || uf === 'DF')
-   percentual = 0.12
+        document.getElementById(
+        'resultadoFrete'
+        ).innerHTML = ''
 
- if(uf === 'MT' || uf === 'MS')
-   percentual = 0.13
+        return
+    }
 
- if(uf === 'PR' || uf === 'SC')
-   percentual = 0.14
+    try{
 
- if(uf === 'RS')
-   percentual = 0.15
+        const { data, error } =
+        await client
+        .from('taxas_cotacao')
+        .select('*')
+        .eq('uf', uf)
+        .eq('ativo', true)
 
- if(uf === 'MG'){
+        if(error)
+            throw error
 
-   if([
-      'BELO HORIZONTE',
-      'CONTAGEM',
-      'BETIM'
-   ].includes(cidade))
-      percentual = 0.11
+        let percentual = 11
 
-   else if([
-      'UBERLANDIA',
-      'UBERABA'
-   ].includes(cidade))
-      percentual = 0.12
+        const taxaCidade =
+        data.find(
+            item =>
+            item.cidade &&
+            item.cidade.toUpperCase() === cidade
+        )
 
-   else
-      percentual = 0.13
- }
+        if(taxaCidade){
 
- const frete =
- valorNota * percentual
+            percentual =
+            Number(taxaCidade.percentual)
 
- document.getElementById('resultadoFrete')
- .innerHTML = `
+        }else{
 
- <h3>Resultado da Cotação</h3>
+            const taxaPadrao =
+            data.find(
+                item =>
+                item.cidade === '*'
+            )
 
- <p>
- <b>UF:</b> ${uf}
- </p>
+            if(taxaPadrao){
 
- <p>
- <b>Cidade:</b> ${cidade}
- </p>
+                percentual =
+                Number(
+                taxaPadrao.percentual
+                )
 
- <p>
- <b>Percentual:</b>
- ${(percentual*100).toFixed(2)}%
- </p>
+            }
+        }
 
- <div class="valor">
- R$ ${frete.toLocaleString('pt-BR',{
-   minimumFractionDigits:2
- })}
- </div>
- `
+        const frete =
+        valorNota *
+        (percentual / 100)
+
+        document.getElementById(
+        'percentualAplicado'
+        ).value =
+        percentual.toFixed(2) + '%'
+
+        document.getElementById(
+        'valorFrete'
+        ).value =
+        frete.toLocaleString(
+            'pt-BR',
+            {
+                style:'currency',
+                currency:'BRL'
+            }
+        )
+
+        document.getElementById(
+        'resultadoFrete'
+        ).innerHTML = `
+            <h3>Resultado da Cotação</h3>
+
+            <p>
+            <b>UF:</b> ${uf}
+            </p>
+
+            <p>
+            <b>Cidade:</b> ${cidade}
+            </p>
+
+            <p>
+            <b>Percentual:</b> ${percentual.toFixed(2)}%
+            </p>
+
+            <div style="
+                font-size:28px;
+                font-weight:bold;
+                color:#16a34a;
+                margin-top:15px;
+            ">
+                ${frete.toLocaleString(
+                    'pt-BR',
+                    {
+                        style:'currency',
+                        currency:'BRL'
+                    }
+                )}
+            </div>
+        `
+
+    }catch(err){
+
+        console.error(err)
+
+        Swal.fire(
+            'Erro',
+            'Não foi possível calcular o frete.',
+            'error'
+        )
+
+    }
+}
+
+async function salvarTaxa(){
+
+    const uf =
+    document.getElementById('taxaUf')
+    .value.toUpperCase()
+
+    const cidade =
+    document.getElementById('taxaCidade')
+    .value.toUpperCase()
+
+    const percentual =
+    Number(
+        document.getElementById('taxaPercentual')
+        .value
+    )
+
+    if(!uf || !cidade || !percentual){
+
+        Swal.fire(
+            'Preencha todos os campos'
+        )
+
+        return
+    }
+
+    let query =
+    client
+    .from('taxas_cotacao')
+
+    if(taxaEditando){
+
+        await query
+        .update({
+            uf,
+            cidade,
+            percentual
+        })
+        .eq('id', taxaEditando)
+
+        Swal.fire(
+            'Atualizado!'
+        )
+
+    }else{
+
+        await query.insert({
+            uf,
+            cidade,
+            percentual,
+            ativo:true
+        })
+
+        Swal.fire(
+            'Taxa cadastrada!'
+        )
+    }
+
+    taxaEditando = null
+
+    limparFormularioTaxa()
+
+    carregarTaxas()
+}
+
+function limparFormularioTaxa(){
+
+    document.getElementById('taxaUf').value = ''
+
+    document.getElementById('taxaCidade').value = ''
+
+    document.getElementById('taxaPercentual').value = ''
+}
+
+function editarTaxa(id,uf,cidade,percentual){
+
+    taxaEditando = id
+
+    document.getElementById('taxaUf')
+    .value = uf
+
+    document.getElementById('taxaCidade')
+    .value = cidade
+
+    document.getElementById('taxaPercentual')
+    .value = percentual
+
+}
+
+async function excluirTaxa(id){
+
+    const confirma =
+    await Swal.fire({
+        title:'Excluir?',
+        showCancelButton:true
+    })
+
+    if(!confirma.isConfirmed)
+        return
+
+    await client
+    .from('taxas_cotacao')
+    .delete()
+    .eq('id',id)
+
+    carregarTaxas()
+
+}
+
+async function carregarTaxas(){
+
+    const { data, error } =
+    await client
+    .from('taxas_cotacao')
+    .select('*')
+    .order('uf')
+
+    if(error){
+        console.error(error)
+        return
+    }
+
+    const tabela =
+    document.getElementById('listaTaxas')
+
+    tabela.innerHTML = ''
+
+    data.forEach(item=>{
+
+        tabela.innerHTML += `
+        <tr>
+
+            <td>${item.uf}</td>
+
+            <td>${item.cidade}</td>
+
+            <td>${item.percentual}%</td>
+
+            <td>
+
+                <button
+                class="btn-ver"
+                onclick="
+                editarTaxa(
+                ${item.id},
+                '${item.uf}',
+                '${item.cidade}',
+                ${item.percentual}
+                )">
+                Editar
+                </button>
+
+                <button
+                class="btn-cancelar"
+                onclick="
+                excluirTaxa(${item.id})
+                ">
+                Excluir
+                </button>
+
+            </td>
+
+        </tr>
+        `
+    })
+
 }

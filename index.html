@@ -267,273 +267,212 @@ Importar XMLs
 
 <div id="cotacaoTela" class="container hidden">
 
-<div class="card">
+    <div class="tabs-cotacao">
 
-<h2>Calculadora de Cotação</h2>
+        <button
+            class="tab-btn ativo"
+            onclick="abrirAbaCotacao('nova')">
+            Nova Cotação
+        </button>
+
+        <button
+            class="tab-btn"
+            onclick="abrirAbaCotacao('taxas')">
+            Cadastro de Taxas
+        </button>
+
+    </div>
+
+    <!-- NOVA COTAÇÃO -->
+
+    <div id="abaNovaCotacao">
+
+        <div class="card">
+
+            <h2>Calculadora de Cotação</h2>
+
+            <div class="grid-cotacao">
+
+                <div>
+                    <label>Remetente</label>
+
+                    <select id="remetente">
+                        <option value="57211997000146">
+                            MARCON
+                        </option>
+                    </select>
+                </div>
+
+                <div>
+                    <label>CNPJ Destinatário</label>
+
+                    <div class="linha-cnpj">
+
+                        <input
+                            id="cnpjDestino"
+                            placeholder="Digite o CNPJ">
+
+                        <button
+                            class="btn-gerar"
+                            onclick="buscarCnpj()">
+                            Buscar
+                        </button>
+
+                    </div>
+                </div>
+
+                <div>
+                    <label>Razão Social</label>
+                    <input id="razaoSocial" readonly>
+                </div>
+
+                <div>
+                    <label>Cidade</label>
+                    <input id="cidadeDestino" readonly>
+                </div>
+
+                <div>
+                    <label>UF</label>
+                    <input id="estadoDestino" readonly>
+                </div>
+
+                <div>
+                    <label>CEP</label>
+                    <input id="cepDestino" readonly>
+                </div>
+
+                <div>
+                    <label>Endereço</label>
+                    <input id="enderecoDestino" readonly>
+                </div>
+
+                <div>
+                    <label>Valor da Nota</label>
+
+                    <input
+                        id="valorNota"
+                        type="number"
+                        oninput="calcularFrete()">
+                </div>
+
+                <div>
+                    <label>Altura (cm)</label>
+
+                    <input
+                        id="altura"
+                        type="number"
+                        oninput="calcularCubagem()">
+                </div>
+
+                <div>
+                    <label>Largura (cm)</label>
+
+                    <input
+                        id="largura"
+                        type="number"
+                        oninput="calcularCubagem()">
+                </div>
+
+                <div>
+                    <label>Comprimento (cm)</label>
+
+                    <input
+                        id="comprimento"
+                        type="number"
+                        oninput="calcularCubagem()">
+                </div>
+
+                <div>
+                    <label>Cubagem (m³)</label>
+
+                    <input
+                        id="cubagem"
+                        readonly>
+                </div>
+                <div>
+    <label>Percentual Aplicado</label>
+    <input id="percentualAplicado" readonly>
+</div>
+
+<div>
+    <label>Valor do Frete</label>
+    <input id="valorFrete" readonly>
+</div>
+
+            </div>
+
+            <br>
+
+            <button
+                class="btn-finalizar"
+                onclick="calcularFrete()">
+                Calcular Frete
+            </button>
+
+            <div
+                id="resultadoFrete"
+                class="resultado-cotacao">
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- TAXAS -->
+
+    <div
+        id="abaTaxas"
+        style="display:none;">
+
+        <div class="card">
+
+            <h2>Cadastro de Taxas</h2>
+
+            <div class="card">
+
+<h3>Nova Taxa</h3>
 
 <div class="grid-cotacao">
 
-<div>
-<label>Remetente</label>
+<input id="taxaUf" placeholder="UF">
 
-<select id="remetente">
-<option value="57211997000146">
-MARCON
-</option>
-</select>
-</div>
-
-<div>
-<label>CNPJ Destinatário</label>
-
-<div class="linha-cnpj">
+<input id="taxaCidade" placeholder="Cidade (* para padrão)">
 
 <input
-id="cnpjDestino"
-placeholder="Digite o CNPJ"
->
-
-<button
-class="btn-gerar"
-onclick="buscarCnpj()">
-Buscar
-</button>
-
-
-<div class="grid-cotacao">
-
-<input
- id="razaoSocial"
- placeholder="Razão Social"
- readonly
->
-
-<input
- id="cidadeDestino"
- placeholder="Cidade"
- readonly
->
-
-<input
- id="estadoDestino"
- placeholder="UF"
- readonly
->
-
-<input
- id="cepDestino"
- placeholder="CEP"
- readonly
->
-
-<input
- id="enderecoDestino"
- placeholder="Endereço"
- readonly
->
-
-</div>
-</div>
-</div>
-
-<div>
-<label>Razão Social</label>
-<input id="razaoDestino" readonly>
-</div>
-
-<div>
-<label>Cidade</label>
-<input id="cidadeDestino" readonly>
-</div>
-
-<div>
-<label>Estado</label>
-<input id="estadoDestino" readonly>
-</div>
-
-<div>
-<label>Valor da Nota</label>
-
-<input
-id="valorNota"
+id="taxaPercentual"
 type="number"
-placeholder="Valor da Nota"
-oninput="calcularFrete()"
+step="0.01"
+placeholder="%"
 >
-</div>
-
-<input id="altura" oninput="calcularCubagem()">
-<input id="largura" oninput="calcularCubagem()">
-<input id="comprimento" oninput="calcularCubagem()">
-
-<div>
-<label>Cubagem (m³)</label>
-
-<input
-id="cubagem"
-type="number"
-step="0.001"
-placeholder="0.000"
->
-</div>
-
-</div>
-
-<div style="margin-top:20px">
-
-<button
-class="btn-gerar"
-onclick="calcularCotacao()">
-Calcular Frete
-</button>
-
-<button
- class="btn-gerar"
- onclick="calcularFrete()">
- Calcular Frete
-</button>
-
-<div
- id="resultadoFrete"
- class="resultado-cotacao">
-</div>
-
-</div>
-
-<div id="resultadoCotacao"></div>
-
-</div>
-
-<button onclick="mostrarTela('cotacaoTela')">
-Cotação
-</button>
-
-
-
-<div id="cotacaoTela" class="container hidden">
-
-<div class="tabs-cotacao">
-
-<button
-class="tab-btn ativo"
-onclick="abrirAbaCotacao('nova')">
-Nova Cotação
-</button>
-
-<button
-class="tab-btn"
-onclick="abrirAbaCotacao('taxas')">
-Cadastro de Taxas
-</button>
-
-</div>
-
-<div id="abaNovaCotacao">
-
-<div class="card">
-
-<h2>Nova Cotação</h2>
-
-<div class="grid">
-
-<select id="remetente">
-
-<option value="57211997000146">
-MACEDO TRANSPORTES
-</option>
-
-</select>
-
-<input
-id="cnpjDestino"
-placeholder="CNPJ Destinatário"
->
-
-<button
-class="btn-gerar"
-onclick="buscarCnpj()">
-Buscar CNPJ
-</button>
-
-<input id="razaoSocial" readonly>
-<input id="cidadeDestino" readonly>
-<input id="estadoDestino" readonly>
-
-<input id="valorNota" placeholder="Valor Nota">
-
-<input
-id="altura"
-placeholder="Altura"
-onkeyup="calcularCubagem()"
->
-
-<input
-id="largura"
-placeholder="Largura"
-onkeyup="calcularCubagem()"
->
-
-<input
-id="comprimento"
-placeholder="Comprimento"
-onkeyup="calcularCubagem()"
->
-
-<input
-id="cubagem"
-placeholder="Cubagem"
->
-
-<input
-id="percentualAplicado"
-readonly
->
-
-<input
-id="valorFrete"
-readonly
->
-
-</div>
 
 <button
 class="btn-finalizar"
-onclick="calcularCotacao()">
-Calcular Frete
+onclick="salvarTaxa()">
+Salvar Taxa
 </button>
 
 </div>
 
 </div>
 
-<div id="abaTaxas" style="display:none;">
+            <table>
 
-<div class="card">
+                <thead>
+                    <tr>
+                        <th>UF</th>
+                        <th>Cidade</th>
+                        <th>Percentual</th>
+                        <th>Ação</th>
+                    </tr>
+                </thead>
 
-<h2>Cadastro de Taxas</h2>
+                <tbody id="listaTaxas"></tbody>
 
-<table>
+            </table>
 
-<thead>
-<tr>
-<th>UF</th>
-<th>Cidade</th>
-<th>%</th>
-<th>Ação</th>
-</tr>
-</thead>
+        </div>
 
-<tbody id="listaTaxas"></tbody>
-
-</table>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
+    </div>
 
 </div>
 
