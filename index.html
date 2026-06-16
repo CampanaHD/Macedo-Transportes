@@ -354,8 +354,17 @@ Importar XMLs
                         type="number"
                         oninput="calcularFrete()">
                 </div>
+<div>
+    <label>Peso (kg)</label>
+    <input id="peso" type="number">
+</div>
 
-                <div>
+<div>
+    <label>Volumes</label>
+    <input id="volumes" type="number">
+</div>
+
+                <!-- <div>
                     <label>Altura (cm)</label>
 
                     <input
@@ -388,7 +397,7 @@ Importar XMLs
                     <input
                         id="cubagem"
                         readonly>
-                </div>
+                </div> -->
                 <div>
     <label>Percentual Aplicado</label>
     <input id="percentualAplicado" readonly>
@@ -420,59 +429,123 @@ Importar XMLs
 
     <!-- TAXAS -->
 
-    <div
-        id="abaTaxas"
-        style="display:none;">
+    <div id="abaTaxas" style="display:none;">
 
-        <div class="card">
+<div class="card">
 
-            <h2>Cadastro de Taxas</h2>
+<h2>Tarifas por Região</h2>
 
-            <div class="card">
+<div class="grid">
 
-<h3>Nova Taxa</h3>
+<!-- <input id="grupoNome" placeholder="Grupo">
 
-<div class="grid-cotacao">
+<input id="grupoPercentual" type="number" step="0.01" placeholder="% NF">
 
-<input id="taxaUf" placeholder="UF">
+<input id="grupoMinimo" type="number" step="0.01" placeholder="Frete mínimo">
 
-<input id="taxaCidade" placeholder="Cidade (* para padrão)">
-
-<input
-id="taxaPercentual"
-type="number"
-step="0.01"
-placeholder="%"
->
+<button onclick="salvarGrupo()">
+Salvar
+</button> -->
 
 <button
-class="btn-finalizar"
-onclick="salvarTaxa()">
-Salvar Taxa
+class="btn-gerar"
+onclick="novoGrupo()">
+Novo Grupo
+</button>
+
+<button
+class="btn-gerar"
+onclick="novaTaxaGeral()">
+Nova Taxa
+</button>
+
+<button
+class="btn-gerar"
+onclick="novaCidadeGrupo()">
+Nova Cidade
+</button>
+
+
+
+</div>
+
+<table>
+
+<thead>
+<tr>
+<th>Grupo</th>
+<th>% NF</th>
+<th>Mínimo</th>
+<th>Ações</th>
+</tr>
+</thead>
+
+<tbody id="listaGrupos"></tbody>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h2>Taxas Gerais</h2>
+
+<table>
+
+<thead>
+<tr>
+<th>Taxa</th>
+<th>Valor</th>
+<th>Ações</th>
+</tr>
+</thead>
+
+<tbody id="listaTaxasGerais"></tbody>
+
+</table>
+
+</div>
+
+<div class="card">
+
+<h2>Cidades</h2>
+
+<div class="grid">
+
+<input id="cidadeNome" placeholder="Cidade">
+
+<input id="cidadeUf" placeholder="UF">
+
+<select id="cidadeGrupo"></select>
+
+<button onclick="salvarCidadeGrupo()">
+Salvar
 </button>
 
 </div>
 
+<input
+id="buscarCidade"
+placeholder="Buscar cidade..."
+onkeyup="filtrarCidadeGrupo()">
+
+<table>
+
+<thead>
+<tr>
+<th>Cidade</th>
+<th>UF</th>
+<th>Grupo</th>
+<th>Ações</th>
+</tr>
+</thead>
+
+<tbody id="listaCidadesGrupo"></tbody>
+
+</table>
+
+
 </div>
-
-            <table>
-
-                <thead>
-                    <tr>
-                        <th>UF</th>
-                        <th>Cidade</th>
-                        <th>Percentual</th>
-                        <th>Ação</th>
-                    </tr>
-                </thead>
-
-                <tbody id="listaTaxas"></tbody>
-
-            </table>
-
-        </div>
-
-    </div>
 
 </div>
 

@@ -2017,6 +2017,19 @@ await calcularFrete()
 
 function abrirAbaCotacao(aba){
 
+  if(aba === 'taxas'){
+
+    document.getElementById(
+    'abaTaxas'
+    ).style.display = 'block'
+
+    document
+    .querySelectorAll('.tab-btn')[1]
+    .classList.add('ativo')
+
+    carregarTaxas()
+}
+
     document.getElementById('abaNovaCotacao')
     .style.display = 'none'
 
@@ -2039,6 +2052,8 @@ function abrirAbaCotacao(aba){
     .querySelectorAll('.tab-btn')[0]
     .classList.add('ativo')
 
+    carregarConfiguracoesCotacao()
+
 }else{
 
     document.getElementById(
@@ -2049,210 +2064,153 @@ function abrirAbaCotacao(aba){
     .querySelectorAll('.tab-btn')[1]
     .classList.add('ativo')
 
-    carregarTaxas()
 }
 }
 
 async function calcularFrete(){
 
-    const uf =
-    document.getElementById('estadoDestino')
-    ?.value || ''
-
     const cidade =
-    (
-        document.getElementById('cidadeDestino')
-        ?.value || ''
-    ).toUpperCase()
+    document.getElementById(
+    'cidadeDestino'
+    ).value.toUpperCase()
+
+    const uf =
+    document.getElementById(
+    'estadoDestino'
+    ).value
 
     const valorNota =
     Number(
-        document.getElementById('valorNota')
-        ?.value
+    document.getElementById(
+    'valorNota'
+    ).value
     ) || 0
 
-    if(!uf || valorNota <= 0){
+    const peso =
+    Number(
+    document.getElementById(
+    'peso'
+    ).value
+    ) || 0
 
-        document.getElementById(
-        'resultadoFrete'
-        ).innerHTML = ''
+    const volumes =
+    Number(
+    document.getElementById(
+    'volumes'
+    ).value
+    ) || 1
+
+    const { data:cidadeInfo } =
+    await client
+    .from('cidades_grupo')
+    .select('*')
+    .eq('cidade',cidade)
+    .eq('uf',uf)
+    .single()
+
+    if(!cidadeInfo){
+
+        Swal.fire(
+        'Cidade não cadastrada'
+        )
 
         return
     }
 
-    try{
+    const { data:grupo } =
+    await client
+    .from('grupos_tarifarios')
+    .select('*')
+    .eq(
+        'grupo',
+        cidadeInfo.grupo
+    )
+    .single()
 
-        const { data, error } =
-        await client
-        .from('taxas_cotacao')
-        .select('*')
-        .eq('uf', uf)
-        .eq('ativo', true)
+    const { data:taxas } =
+    await client
+    .from('taxas_gerais')
+    .select('*')
 
-        if(error)
-            throw error
-
-        let percentual = 11
-
-        const taxaCidade =
-        data.find(
-            item =>
-            item.cidade &&
-            item.cidade.toUpperCase() === cidade
-        )
-
-        if(taxaCidade){
-
-            percentual =
-            Number(taxaCidade.percentual)
-
-        }else{
-
-            const taxaPadrao =
-            data.find(
-                item =>
-                item.cidade === '*'
-            )
-
-            if(taxaPadrao){
-
-                percentual =
-                Number(
-                taxaPadrao.percentual
-                )
-
-            }
-        }
-
-        const frete =
-        valorNota *
-        (percentual / 100)
-
-        document.getElementById(
-        'percentualAplicado'
-        ).value =
-        percentual.toFixed(2) + '%'
-
-        document.getElementById(
-        'valorFrete'
-        ).value =
-        frete.toLocaleString(
-            'pt-BR',
-            {
-                style:'currency',
-                currency:'BRL'
-            }
-        )
-
-        document.getElementById(
-        'resultadoFrete'
-        ).innerHTML = `
-            <h3>Resultado da Cotação</h3>
-
-            <p>
-            <b>UF:</b> ${uf}
-            </p>
-
-            <p>
-            <b>Cidade:</b> ${cidade}
-            </p>
-
-            <p>
-            <b>Percentual:</b> ${percentual.toFixed(2)}%
-            </p>
-
-            <div style="
-                font-size:28px;
-                font-weight:bold;
-                color:#16a34a;
-                margin-top:15px;
-            ">
-                ${frete.toLocaleString(
-                    'pt-BR',
-                    {
-                        style:'currency',
-                        currency:'BRL'
-                    }
-                )}
-            </div>
-        `
-
-    }catch(err){
-
-        console.error(err)
-
-        Swal.fire(
-            'Erro',
-            'Não foi possível calcular o frete.',
-            'error'
-        )
-
-    }
-}
-
-async function salvarTaxa(){
-
-    const uf =
-    document.getElementById('taxaUf')
-    .value.toUpperCase()
-
-    const cidade =
-    document.getElementById('taxaCidade')
-    .value.toUpperCase()
-
-    const percentual =
+    const getTaxa =
+    nome =>
     Number(
-        document.getElementById('taxaPercentual')
-        .value
+        taxas.find(
+        t=>t.nome===nome
+        )?.valor || 0
     )
 
-    if(!uf || !cidade || !percentual){
+    let fretePeso =
+    valorNota *
+    (grupo.percentual/100)
 
-        Swal.fire(
-            'Preencha todos os campos'
-        )
+    fretePeso =
+    Math.max(
+        fretePeso,
+        grupo.frete_minimo
+    )
 
-        return
-    }
+    const gris =
+    Math.max(
+        valorNota *
+        (getTaxa('GRIS_PERCENTUAL')/100),
+        getTaxa('GRIS_MINIMO')
+    )
 
-    let query =
-    client
-    .from('taxas_cotacao')
+    const pedagio =
+    Math.ceil(peso/100) *
+    getTaxa('PEDAGIO_100KG')
 
-    if(taxaEditando){
+    const tad =
+    getTaxa('TAD')
 
-        await query
-        .update({
-            uf,
-            cidade,
-            percentual
-        })
-        .eq('id', taxaEditando)
+    const subtotal =
+    fretePeso +
+    gris +
+    pedagio +
+    tad
 
-        Swal.fire(
-            'Atualizado!'
-        )
+    const freteFinal =
+    subtotal /
+    getTaxa('ICMS_DIVISOR')
 
-    }else{
+    document.getElementById(
+    'resultadoFrete'
+    ).innerHTML = `
 
-        await query.insert({
-            uf,
-            cidade,
-            percentual,
-            ativo:true
-        })
+    <h3>Resultado</h3>
 
-        Swal.fire(
-            'Taxa cadastrada!'
-        )
-    }
+    <p>
+    Frete Peso:
+    R$ ${fretePeso.toFixed(2)}
+    </p>
 
-    taxaEditando = null
+    <p>
+    GRIS:
+    R$ ${gris.toFixed(2)}
+    </p>
 
-    limparFormularioTaxa()
+    <p>
+    Pedágio:
+    R$ ${pedagio.toFixed(2)}
+    </p>
 
-    carregarTaxas()
+    <p>
+    TAD:
+    R$ ${tad.toFixed(2)}
+    </p>
+
+    <hr>
+
+    <h2>
+    Total:
+    R$ ${freteFinal.toFixed(2)}
+    </h2>
+
+    `
 }
+
+
 
 function limparFormularioTaxa(){
 
@@ -2263,48 +2221,17 @@ function limparFormularioTaxa(){
     document.getElementById('taxaPercentual').value = ''
 }
 
-function editarTaxa(id,uf,cidade,percentual){
 
-    taxaEditando = id
 
-    document.getElementById('taxaUf')
-    .value = uf
 
-    document.getElementById('taxaCidade')
-    .value = cidade
 
-    document.getElementById('taxaPercentual')
-    .value = percentual
-
-}
-
-async function excluirTaxa(id){
-
-    const confirma =
-    await Swal.fire({
-        title:'Excluir?',
-        showCancelButton:true
-    })
-
-    if(!confirma.isConfirmed)
-        return
-
-    await client
-    .from('taxas_cotacao')
-    .delete()
-    .eq('id',id)
-
-    carregarTaxas()
-
-}
-
-async function carregarTaxas(){
+async function carregarGrupos(){
 
     const { data, error } =
     await client
-    .from('taxas_cotacao')
+    .from('grupos_tarifarios')
     .select('*')
-    .order('uf')
+    .order('grupo')
 
     if(error){
         console.error(error)
@@ -2312,40 +2239,38 @@ async function carregarTaxas(){
     }
 
     const tabela =
-    document.getElementById('listaTaxas')
+    document.getElementById('listaGrupos')
+
+    if(!tabela) return
 
     tabela.innerHTML = ''
 
-    data.forEach(item=>{
+    data.forEach(item => {
 
         tabela.innerHTML += `
         <tr>
 
-            <td>${item.uf}</td>
-
-            <td>${item.cidade}</td>
+            <td>${item.grupo}</td>
 
             <td>${item.percentual}%</td>
+
+            <td>
+            R$ ${Number(
+                item.frete_minimo
+            ).toFixed(2)}
+            </td>
 
             <td>
 
                 <button
                 class="btn-ver"
-                onclick="
-                editarTaxa(
-                ${item.id},
-                '${item.uf}',
-                '${item.cidade}',
-                ${item.percentual}
-                )">
+                onclick="editarGrupo(${item.id})">
                 Editar
                 </button>
 
                 <button
                 class="btn-cancelar"
-                onclick="
-                excluirTaxa(${item.id})
-                ">
+                onclick="excluirGrupo(${item.id})">
                 Excluir
                 </button>
 
@@ -2354,5 +2279,513 @@ async function carregarTaxas(){
         </tr>
         `
     })
+}
 
+async function carregarTaxasGerais(){
+
+    const { data, error } =
+    await client
+    .from('taxas_gerais')
+    .select('*')
+    .order('nome')
+
+    if(error){
+        console.error(error)
+        return
+    }
+
+    const tabela =
+    document.getElementById(
+    'listaTaxasGerais'
+    )
+
+    if(!tabela) return
+
+    tabela.innerHTML = ''
+
+    data.forEach(item => {
+
+        tabela.innerHTML += `
+        <tr>
+
+            <td>${item.nome}</td>
+
+            <td>${item.valor}</td>
+
+            <td>
+
+                <button
+                class="btn-ver"
+                onclick="
+                editarTaxaGeral(
+                ${item.id}
+                )">
+                Editar
+                </button>
+
+            </td>
+
+        </tr>
+        `
+    })
+}
+
+async function carregarCidadesGrupo(){
+
+    const { data, error } =
+    await client
+    .from('cidades_grupo')
+    .select('*')
+    .order('cidade')
+
+    if(error){
+        console.error(error)
+        return
+    }
+
+    const tabela =
+    document.getElementById(
+    'listaCidadesGrupo'
+    )
+
+    if(!tabela) return
+
+    tabela.innerHTML = ''
+
+    data.forEach(item => {
+
+        tabela.innerHTML += `
+        <tr>
+
+            <td>${item.cidade}</td>
+
+            <td>${item.uf}</td>
+
+            <td>${item.grupo}</td>
+
+            <td>
+
+                <button
+                class="btn-ver"
+                onclick="
+                editarCidadeGrupo(
+                ${item.id}
+                )">
+                Editar
+                </button>
+
+                <button
+                class="btn-cancelar"
+                onclick="
+                excluirCidadeGrupo(
+                ${item.id}
+                )">
+                Excluir
+                </button>
+
+            </td>
+
+        </tr>
+        `
+    })
+}
+
+async function carregarConfiguracoesCotacao(){
+
+    await carregarGrupos()
+
+    await carregarTaxasGerais()
+
+    await carregarCidadesGrupo()
+}
+
+async function carregarTaxas() {
+
+    const tbodyGrupos = document.getElementById('listaGrupos');
+    const tbodyGerais = document.getElementById('listaTaxasGerais');
+    const tbodyCidades = document.getElementById('listaCidadesGrupo');
+
+    if (!tbodyGrupos || !tbodyGerais || !tbodyCidades) {
+        console.error('Elementos da tela de taxas não encontrados');
+        return;
+    }
+
+    tbodyGrupos.innerHTML = '';
+    tbodyGerais.innerHTML = '';
+    tbodyCidades.innerHTML = '';
+
+    await carregarGrupos();
+    await carregarTaxasGerais();
+    await carregarCidadesGrupo();
+}
+
+// =====================================
+// GRUPOS TARIFÁRIOS
+// =====================================
+
+async function editarGrupo(id){
+
+    const { data:item } = await client
+    .from('grupos_tarifarios')
+    .select('*')
+    .eq('id',id)
+    .single()
+
+    const { value:form } = await Swal.fire({
+        title:'Editar Grupo',
+        html:`
+            <input id="grupoNome"
+                class="swal2-input"
+                value="${item.grupo}">
+
+            <input id="grupoPerc"
+                class="swal2-input"
+                type="number"
+                step="0.01"
+                value="${item.percentual}">
+
+            <input id="grupoMin"
+                class="swal2-input"
+                type="number"
+                step="0.01"
+                value="${item.frete_minimo}">
+        `,
+        preConfirm:()=>({
+            grupo:document.getElementById('grupoNome').value,
+            percentual:Number(document.getElementById('grupoPerc').value),
+            frete_minimo:Number(document.getElementById('grupoMin').value)
+        })
+    })
+
+    if(!form) return
+
+    await client
+    .from('grupos_tarifarios')
+    .update(form)
+    .eq('id',id)
+
+    Swal.fire('Grupo atualizado')
+    carregarGrupos()
+}
+
+async function excluirGrupo(id){
+
+    const confirma = await Swal.fire({
+        title:'Excluir grupo?',
+        icon:'warning',
+        showCancelButton:true
+    })
+
+    if(!confirma.isConfirmed) return
+
+    await client
+    .from('grupos_tarifarios')
+    .delete()
+    .eq('id',id)
+
+    Swal.fire('Grupo excluído')
+    carregarGrupos()
+}
+
+async function editarTaxaGeral(id){
+
+    const { data:item } = await client
+    .from('taxas_gerais')
+    .select('*')
+    .eq('id',id)
+    .single()
+
+    const { value:valor } = await Swal.fire({
+        title:item.nome,
+        input:'number',
+        inputValue:item.valor
+    })
+
+    if(valor===undefined) return
+
+    await client
+    .from('taxas_gerais')
+    .update({
+        valor:Number(valor)
+    })
+    .eq('id',id)
+
+    Swal.fire('Taxa atualizada')
+    carregarTaxasGerais()
+}
+
+async function editarCidadeGrupo(id){
+
+    const { data:item } = await client
+    .from('cidades_grupo')
+    .select('*')
+    .eq('id',id)
+    .single()
+
+    const { value:form } = await Swal.fire({
+        title:'Editar Cidade',
+        html:`
+
+        <input
+        id="cidade"
+        class="swal2-input"
+        value="${item.cidade}">
+
+        <input
+        id="uf"
+        class="swal2-input"
+        value="${item.uf}">
+
+        <input
+        id="grupo"
+        class="swal2-input"
+        value="${item.grupo}">
+        `,
+
+        preConfirm:()=>({
+            cidade:
+            document.getElementById('cidade').value,
+
+            uf:
+            document.getElementById('uf').value,
+
+            grupo:
+            document.getElementById('grupo').value
+        })
+    })
+
+    if(!form) return
+
+    await client
+    .from('cidades_grupo')
+    .update(form)
+    .eq('id',id)
+
+    Swal.fire('Cidade atualizada')
+    carregarCidadesGrupo()
+}
+
+async function excluirCidadeGrupo(id){
+
+    const confirma = await Swal.fire({
+        title:'Excluir cidade?',
+        icon:'warning',
+        showCancelButton:true
+    })
+
+    if(!confirma.isConfirmed) return
+
+    await client
+    .from('cidades_grupo')
+    .delete()
+    .eq('id',id)
+
+    Swal.fire('Cidade excluída')
+    carregarCidadesGrupo()
+}
+
+async function novoGrupo(){
+
+ const { value:form } = await Swal.fire({
+   title:'Novo Grupo',
+
+   html:`
+   <input id="grupo"
+   class="swal2-input"
+   placeholder="Grupo">
+
+   <input id="percentual"
+   class="swal2-input"
+   type="number"
+   step="0.01"
+   placeholder="%">
+
+   <input id="frete"
+   class="swal2-input"
+   type="number"
+   step="0.01"
+   placeholder="Frete mínimo">
+   `,
+
+   preConfirm:()=>({
+
+      grupo:
+      document.getElementById('grupo').value,
+
+      percentual:
+      Number(
+      document.getElementById('percentual').value
+      ),
+
+      frete_minimo:
+      Number(
+      document.getElementById('frete').value
+      )
+
+   })
+ })
+
+ if(!form) return
+
+ await client
+ .from('grupos_tarifarios')
+ .insert([form])
+
+ Swal.fire('Grupo cadastrado')
+
+ carregarGrupos()
+}
+
+async function novaCidadeGrupo(){
+
+ const { data:grupos } =
+ await client
+ .from('grupos_tarifarios')
+ .select('*')
+ .order('grupo')
+
+ let options=''
+
+ grupos.forEach(g=>{
+   options += `
+   <option value="${g.grupo}">
+   ${g.grupo}
+   </option>
+   `
+ })
+
+ const { value:form } =
+ await Swal.fire({
+
+   title:'Nova Cidade',
+
+   html:`
+
+   <input
+   id="cidade"
+   class="swal2-input"
+   placeholder="Cidade">
+
+   <input
+   id="uf"
+   class="swal2-input"
+   placeholder="UF">
+
+   <select
+   id="grupo"
+   class="swal2-input">
+
+   ${options}
+
+   </select>
+   `,
+
+   preConfirm:()=>({
+
+      cidade:
+      document.getElementById('cidade')
+      .value
+      .toUpperCase(),
+
+      uf:
+      document.getElementById('uf')
+      .value
+      .toUpperCase(),
+
+      grupo:
+      document.getElementById('grupo')
+      .value
+
+   })
+ })
+
+ if(!form) return
+
+ await client
+ .from('cidades_grupo')
+ .insert([form])
+
+ Swal.fire('Cidade cadastrada')
+
+ carregarCidadesGrupo()
+}
+
+async function novaTaxaGeral(){
+
+ const { value:form } =
+ await Swal.fire({
+
+   title:'Nova Taxa',
+
+   html:`
+
+   <input
+   id="nome"
+   class="swal2-input"
+   placeholder="Nome">
+
+   <input
+   id="valor"
+   class="swal2-input"
+   type="number"
+   step="0.0001"
+   placeholder="Valor">
+   `,
+
+   preConfirm:()=>({
+
+      nome:
+      document.getElementById('nome')
+      .value
+      .toUpperCase(),
+
+      valor:
+      Number(
+      document.getElementById('valor').value
+      )
+
+   })
+ })
+
+ if(!form) return
+
+ await client
+ .from('taxas_gerais')
+ .insert([form])
+
+ Swal.fire('Taxa cadastrada')
+
+ carregarTaxasGerais()
+}
+
+function filtrarCidadeGrupo(){
+
+ const termo =
+ document.getElementById('buscarCidade')
+ .value
+ .toLowerCase()
+
+ const linhas =
+ document.querySelectorAll(
+ '#listaCidadesGrupo tr'
+ )
+
+ linhas.forEach(linha=>{
+
+   linha.style.display =
+   linha.innerText
+   .toLowerCase()
+   .includes(termo)
+   ? ''
+   : 'none'
+
+ })
+}
+
+function normalizarCidade(txt){
+
+ return txt
+ .normalize('NFD')
+ .replace(/[\u0300-\u036f]/g,'')
+ .toUpperCase()
 }
