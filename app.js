@@ -2067,17 +2067,28 @@ function abrirAbaCotacao(aba){
 }
 }
 
+function normalizarCidade(texto){
+
+ return texto
+ .normalize('NFD')
+ .replace(/[\u0300-\u036f]/g,'')
+ .trim()
+ .toUpperCase()
+}
+
 async function calcularFrete(){
 
     const cidade =
-    document.getElementById(
-    'cidadeDestino'
-    ).value.toUpperCase()
+    normalizarCidade(
+        document.getElementById(
+        'cidadeDestino'
+        ).value
+    )
 
     const uf =
     document.getElementById(
     'estadoDestino'
-    ).value
+    ).value.toUpperCase()
 
     const valorNota =
     Number(
@@ -2100,21 +2111,45 @@ async function calcularFrete(){
     ).value
     ) || 1
 
-    const { data:cidadeInfo } =
+    let cidadeInfo = null
+
+    // PROCURA CIDADE
+
+    const resultadoCidade =
     await client
     .from('cidades_grupo')
     .select('*')
     .eq('cidade',cidade)
     .eq('uf',uf)
-    .single()
+    .maybeSingle()
+
+    cidadeInfo = resultadoCidade.data
+
+    // NÃO ACHOU CIDADE → PROCURA ESTADO
 
     if(!cidadeInfo){
 
-        Swal.fire(
-        'Cidade não cadastrada'
-        )
+        const resultadoEstado =
+        await client
+        .from('estados_grupo')
+        .select('*')
+        .eq('uf',uf)
+        .maybeSingle()
 
-        return
+        if(resultadoEstado.data){
+
+            cidadeInfo = {
+                grupo: resultadoEstado.data.grupo
+            }
+
+        }else{
+
+            Swal.fire(
+            'Cidade e estado não cadastrados'
+            )
+
+            return
+        }
     }
 
     const { data:grupo } =
@@ -2126,6 +2161,15 @@ async function calcularFrete(){
         cidadeInfo.grupo
     )
     .single()
+
+    if(!grupo){
+
+        Swal.fire(
+        'Grupo tarifário não encontrado'
+        )
+
+        return
+    }
 
     const { data:taxas } =
     await client
@@ -2178,25 +2222,30 @@ async function calcularFrete(){
     'resultadoFrete'
     ).innerHTML = `
 
-    <h3>Resultado</h3>
+    <h3>Resultado da Cotação</h3>
 
     <p>
-    Frete Peso:
+    <b>Grupo:</b>
+    ${cidadeInfo.grupo}
+    </p>
+
+    <p>
+    <b>Frete Peso:</b>
     R$ ${fretePeso.toFixed(2)}
     </p>
 
     <p>
-    GRIS:
+    <b>GRIS:</b>
     R$ ${gris.toFixed(2)}
     </p>
 
     <p>
-    Pedágio:
+    <b>Pedágio:</b>
     R$ ${pedagio.toFixed(2)}
     </p>
 
     <p>
-    TAD:
+    <b>TAD:</b>
     R$ ${tad.toFixed(2)}
     </p>
 
@@ -2206,7 +2255,6 @@ async function calcularFrete(){
     Total:
     R$ ${freteFinal.toFixed(2)}
     </h2>
-
     `
 }
 
@@ -2780,12 +2828,4 @@ function filtrarCidadeGrupo(){
    : 'none'
 
  })
-}
-
-function normalizarCidade(txt){
-
- return txt
- .normalize('NFD')
- .replace(/[\u0300-\u036f]/g,'')
- .toUpperCase()
 }
