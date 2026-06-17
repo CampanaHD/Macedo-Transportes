@@ -166,12 +166,19 @@ async function cancelar(id){
  carregar()
 }
 
-// async function abrir(numero){
-//  viagemAtual=viagens.find(v=>v.numero===numero)
-//  document.getElementById('modal').classList.remove('hidden')
-//  document.getElementById('tituloViagem').innerText='Viagem #'+numero
-//  renderDocs()
-// }
+async function abrir(numero){
+
+ viagemAtual = viagens.find(v => v.numero === numero)
+
+ document.getElementById('modal').classList.remove('hidden')
+ document.getElementById('tituloViagem').innerText = 'Viagem #' + numero
+
+ setTimeout(async ()=>{
+   await renderDocs()
+
+   document.getElementById('scanner')?.focus()
+ },10)
+}
 
 function fechar(){
    fecharLeitor()
