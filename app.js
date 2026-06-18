@@ -2086,16 +2086,14 @@ function normalizarCidade(texto){
 async function calcularFrete(){
 
     const cidade =
-    normalizarCidade(
-        document.getElementById(
-        'cidadeDestino'
-        ).value
-    )
+    document.getElementById(
+    'cidadeDestino'
+    ).value.toUpperCase().trim()
 
     const uf =
     document.getElementById(
     'estadoDestino'
-    ).value.toUpperCase()
+    ).value.toUpperCase().trim()
 
     const valorNota =
     Number(
@@ -2118,67 +2116,109 @@ async function calcularFrete(){
     ).value
     ) || 1
 
-    let cidadeInfo = null
+    let grupoNome = null
 
-    // PROCURA CIDADE
+    // =====================================
+    // 1 - PROCURA CIDADE ESPECÍFICA
+    // =====================================
 
-    const resultadoCidade =
+    const {
+        data:cidadeInfo,
+        error:cidadeError
+    } =
     await client
     .from('cidades_grupo')
     .select('*')
-    .eq('cidade',cidade)
-    .eq('uf',uf)
+    .eq('cidade', cidade)
+    .eq('uf', uf)
     .maybeSingle()
 
-    cidadeInfo = resultadoCidade.data
+    if(cidadeInfo){
 
-    // NÃO ACHOU CIDADE → PROCURA ESTADO
+        grupoNome = cidadeInfo.grupo
 
-    if(!cidadeInfo){
+        console.log(
+            'Grupo encontrado pela cidade:',
+            grupoNome
+        )
 
-        const resultadoEstado =
+    }else{
+
+        // =====================================
+        // 2 - PROCURA GRUPO PADRÃO DA UF
+        // =====================================
+
+        const {
+            data:ufInfo,
+            error:ufError
+        } =
         await client
-        .from('estados_grupo')
+        .from('uf_grupo')
         .select('*')
-        .eq('uf',uf)
+        .eq('uf', uf)
         .maybeSingle()
 
-        if(resultadoEstado.data){
-
-            cidadeInfo = {
-                grupo: resultadoEstado.data.grupo
-            }
-
-        }else{
+        if(!ufInfo){
 
             Swal.fire(
-            'Cidade e estado não cadastrados'
+                'Erro',
+                `UF ${uf} não cadastrada na tabela uf_grupo`,
+                'error'
+            )
+
+            console.log(
+                'UF não encontrada:',
+                uf
             )
 
             return
         }
+
+        grupoNome = ufInfo.grupo
+
+        console.log(
+            'Grupo encontrado pela UF:',
+            grupoNome
+        )
     }
 
-    const { data:grupo } =
+    // =====================================
+    // 3 - BUSCA TARIFA DO GRUPO
+    // =====================================
+
+    const {
+        data:grupo,
+        error:grupoError
+    } =
     await client
     .from('grupos_tarifarios')
     .select('*')
-    .eq(
-        'grupo',
-        cidadeInfo.grupo
-    )
-    .single()
+    .eq('grupo', grupoNome)
+    .maybeSingle()
 
     if(!grupo){
 
         Swal.fire(
-        'Grupo tarifário não encontrado'
+            'Erro',
+            `Grupo tarifário não encontrado: ${grupoNome}`,
+            'error'
+        )
+
+        console.log(
+            'Grupo procurado:',
+            grupoNome
         )
 
         return
     }
 
-    const { data:taxas } =
+    // =====================================
+    // 4 - BUSCA TAXAS GERAIS
+    // =====================================
+
+    const {
+        data:taxas
+    } =
     await client
     .from('taxas_gerais')
     .select('*')
@@ -2187,30 +2227,46 @@ async function calcularFrete(){
     nome =>
     Number(
         taxas.find(
-        t=>t.nome===nome
+            t => t.nome === nome
         )?.valor || 0
     )
 
+    // =====================================
+    // 5 - CÁLCULOS
+    // =====================================
+
     let fretePeso =
     valorNota *
-    (grupo.percentual/100)
+    (
+        Number(grupo.percentual) / 100
+    )
 
     fretePeso =
     Math.max(
         fretePeso,
-        grupo.frete_minimo
+        Number(grupo.frete_minimo)
     )
 
     const gris =
     Math.max(
         valorNota *
-        (getTaxa('GRIS_PERCENTUAL')/100),
-        getTaxa('GRIS_MINIMO')
+        (
+            getTaxa(
+                'GRIS_PERCENTUAL'
+            ) / 100
+        ),
+        getTaxa(
+            'GRIS_MINIMO'
+        )
     )
 
     const pedagio =
-    Math.ceil(peso/100) *
-    getTaxa('PEDAGIO_100KG')
+    Math.ceil(
+        peso / 100
+    ) *
+    getTaxa(
+        'PEDAGIO_100KG'
+    )
 
     const tad =
     getTaxa('TAD')
@@ -2223,7 +2279,13 @@ async function calcularFrete(){
 
     const freteFinal =
     subtotal /
-    getTaxa('ICMS_DIVISOR')
+    getTaxa(
+        'ICMS_DIVISOR'
+    )
+
+    // =====================================
+    // 6 - RESULTADO
+    // =====================================
 
     document.getElementById(
     'resultadoFrete'
@@ -2233,7 +2295,7 @@ async function calcularFrete(){
 
     <p>
     <b>Grupo:</b>
-    ${cidadeInfo.grupo}
+    ${grupoNome}
     </p>
 
     <p>
@@ -2264,7 +2326,6 @@ async function calcularFrete(){
     </h2>
     `
 }
-
 
 
 function limparFormularioTaxa(){
