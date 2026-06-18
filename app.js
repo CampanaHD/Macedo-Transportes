@@ -2235,96 +2235,140 @@ async function calcularFrete(){
     // 5 - CÁLCULOS
     // =====================================
 
-    let fretePeso =
-    valorNota *
-    (
-        Number(grupo.percentual) / 100
-    )
+    const percentual =
+Number(grupo.percentual)
 
-    fretePeso =
-    Math.max(
-        fretePeso,
-        Number(grupo.frete_minimo)
-    )
+const freteCalculado =
+valorNota * (percentual / 100)
 
-    const gris =
-    Math.max(
-        valorNota *
-        (
-            getTaxa(
-                'GRIS_PERCENTUAL'
-            ) / 100
-        ),
-        getTaxa(
-            'GRIS_MINIMO'
-        )
-    )
+const fretePeso =
+Math.max(
+    freteCalculado,
+    Number(grupo.frete_minimo)
+)
 
-    const pedagio =
-    Math.ceil(
-        peso / 100
-    ) *
-    getTaxa(
-        'PEDAGIO_100KG'
-    )
+const grisPerc =
+getTaxa('GRIS_PERCENTUAL')
 
-    const tad =
-    getTaxa('TAD')
+const gris =
+Math.max(
+    valorNota * (grisPerc / 100),
+    getTaxa('GRIS_MINIMO')
+)
 
-    const subtotal =
-    fretePeso +
-    gris +
-    pedagio +
-    tad
+const pedagio =
+Math.ceil(peso / 100) *
+getTaxa('PEDAGIO_100KG')
 
-    const freteFinal =
-    subtotal /
-    getTaxa(
-        'ICMS_DIVISOR'
-    )
+const tad =
+getTaxa('TAD')
+
+const tec =
+getTaxa('TEC') || 0
+
+const outros =
+getTaxa('OUTROS') || 0
+
+const subtotal =
+fretePeso +
+gris +
+pedagio +
+tad +
+tec +
+outros
+
+const divisor =
+getTaxa('ICMS_DIVISOR') || 1
+
+const freteFinal =
+subtotal / divisor
+
+document.getElementById(
+'percentualAplicado'
+).value =
+`${percentual}%`
+
+document.getElementById(
+'valorFrete'
+).value =
+freteFinal.toFixed(2)
 
     // =====================================
     // 6 - RESULTADO
     // =====================================
 
     document.getElementById(
-    'resultadoFrete'
-    ).innerHTML = `
+'resultadoFrete'
+).innerHTML = `
 
-    <h3>Resultado da Cotação</h3>
+<h3>Resultado da Cotação</h3>
 
-    <p>
-    <b>Grupo:</b>
-    ${grupoNome}
-    </p>
+<p>
+<b>Grupo Tarifário:</b>
+${grupoNome}
+</p>
 
-    <p>
-    <b>Frete Peso:</b>
-    R$ ${fretePeso.toFixed(2)}
-    </p>
+<p>
+<b>Percentual Aplicado:</b>
+${percentual}%
+</p>
 
-    <p>
-    <b>GRIS:</b>
-    R$ ${gris.toFixed(2)}
-    </p>
+<p>
+<b>Valor da Nota:</b>
+R$ ${valorNota.toFixed(2)}
+</p>
 
-    <p>
-    <b>Pedágio:</b>
-    R$ ${pedagio.toFixed(2)}
-    </p>
+<hr>
 
-    <p>
-    <b>TAD:</b>
-    R$ ${tad.toFixed(2)}
-    </p>
+<p>
+<b>Frete Peso:</b>
+R$ ${fretePeso.toFixed(2)}
+</p>
 
-    <hr>
+<p>
+<b>GRIS:</b>
+R$ ${gris.toFixed(2)}
+</p>
 
-    <h2>
-    Total:
-    R$ ${freteFinal.toFixed(2)}
-    </h2>
-    `
+<p>
+<b>Pedágio:</b>
+R$ ${pedagio.toFixed(2)}
+</p>
+
+<p>
+<b>TAD:</b>
+R$ ${tad.toFixed(2)}
+</p>
+
+<p>
+<b>TEC:</b>
+R$ ${tec.toFixed(2)}
+</p>
+
+<p>
+<b>Outros:</b>
+R$ ${outros.toFixed(2)}
+</p>
+
+<hr>
+
+<p>
+<b>Subtotal:</b>
+R$ ${subtotal.toFixed(2)}
+</p>
+
+<p>
+<b>Divisor ICMS:</b>
+${divisor}
+</p>
+
+<hr>
+
+<h2>
+Total:
+R$ ${freteFinal.toFixed(2)}
+</h2>
+`
 }
 
 
