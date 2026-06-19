@@ -2116,10 +2116,8 @@ async function calcularFrete(){
     ).value
     ) || 1
 
-    let grupoNome = null
-
     // =====================================
-    // 1 - PROCURA CIDADE ESPECÍFICA
+    // 1 - BUSCA CIDADE
     // =====================================
 
     const {
@@ -2127,63 +2125,27 @@ async function calcularFrete(){
         error:cidadeError
     } =
     await client
-    .from('cidades_grupo')
+    .from('cidades_unidades')
     .select('*')
     .eq('cidade', cidade)
     .eq('uf', uf)
     .maybeSingle()
 
-    if(cidadeInfo){
+    if(!cidadeInfo){
 
-        grupoNome = cidadeInfo.grupo
-
-        console.log(
-            'Grupo encontrado pela cidade:',
-            grupoNome
+        Swal.fire(
+            'Erro',
+            `Cidade ${cidade}/${uf} não encontrada`,
+            'error'
         )
 
-    }else{
-
-        // =====================================
-        // 2 - PROCURA GRUPO PADRÃO DA UF
-        // =====================================
-
-        const {
-            data:ufInfo,
-            error:ufError
-        } =
-        await client
-        .from('uf_grupo')
-        .select('*')
-        .eq('uf', uf)
-        .maybeSingle()
-
-        if(!ufInfo){
-
-            Swal.fire(
-                'Erro',
-                `UF ${uf} não cadastrada na tabela uf_grupo`,
-                'error'
-            )
-
-            console.log(
-                'UF não encontrada:',
-                uf
-            )
-
-            return
-        }
-
-        grupoNome = ufInfo.grupo
-
-        console.log(
-            'Grupo encontrado pela UF:',
-            grupoNome
-        )
+        return
     }
 
+    const grupoNome = cidadeInfo.grupo
+
     // =====================================
-    // 3 - BUSCA TARIFA DO GRUPO
+    // 2 - BUSCA TARIFA
     // =====================================
 
     const {
@@ -2204,16 +2166,11 @@ async function calcularFrete(){
             'error'
         )
 
-        console.log(
-            'Grupo procurado:',
-            grupoNome
-        )
-
         return
     }
 
     // =====================================
-    // 4 - BUSCA TAXAS GERAIS
+    // 3 - TAXAS GERAIS
     // =====================================
 
     const {
@@ -2232,145 +2189,193 @@ async function calcularFrete(){
     )
 
     // =====================================
-    // 5 - CÁLCULOS
+    // 4 - FRETE BASE
     // =====================================
 
     const percentual =
-Number(grupo.percentual)
+    Number(grupo.percentual)
 
-const freteCalculado =
-valorNota * (percentual / 100)
+    const freteCalculado =
+    valorNota * (percentual / 100)
 
-const fretePeso =
-Math.max(
-    freteCalculado,
-    Number(grupo.frete_minimo)
-)
-
-const grisPerc =
-getTaxa('GRIS_PERCENTUAL')
-
-const gris =
-Math.max(
-    valorNota * (grisPerc / 100),
-    getTaxa('GRIS_MINIMO')
-)
-
-const pedagio =
-Math.ceil(peso / 100) *
-getTaxa('PEDAGIO_100KG')
-
-const tad =
-getTaxa('TAD')
-
-const tec =
-getTaxa('TEC') || 0
-
-const outros =
-getTaxa('OUTROS') || 0
-
-const subtotal =
-fretePeso +
-gris +
-pedagio +
-tad +
-tec +
-outros
-
-const divisor =
-getTaxa('ICMS_DIVISOR') || 1
-
-const freteFinal =
-subtotal / divisor
-
-document.getElementById(
-'percentualAplicado'
-).value =
-`${percentual}%`
-
-document.getElementById(
-'valorFrete'
-).value =
-freteFinal.toFixed(2)
+    const fretePeso =
+    Math.max(
+        freteCalculado,
+        Number(grupo.frete_minimo)
+    )
 
     // =====================================
-    // 6 - RESULTADO
+    // 5 - GRIS
+    // =====================================
+
+    const grisPerc =
+    getTaxa('GRIS_PERCENTUAL')
+
+    const gris =
+    Math.max(
+        valorNota * (grisPerc / 100),
+        getTaxa('GRIS_MINIMO')
+    )
+
+    // =====================================
+    // 6 - PEDÁGIO
+    // =====================================
+
+    const pedagio =
+    Math.ceil(peso / 100) *
+    getTaxa('PEDAGIO_100KG')
+
+    // =====================================
+    // 7 - DEMAIS TAXAS
+    // =====================================
+
+    const tad =
+    getTaxa('TAD')
+
+    const tec =
+    getTaxa('TEC') || 0
+
+    const outros =
+    getTaxa('OUTROS') || 0
+
+    // =====================================
+    // 8 - SUBTOTAL
+    // =====================================
+
+    const subtotal =
+    fretePeso +
+    gris +
+    pedagio +
+    tad +
+    tec +
+    outros
+
+    // =====================================
+    // 9 - ICMS
+    // =====================================
+
+    let divisor
+
+    if(
+        uf === 'GO' ||
+        uf === 'DF' ||
+        uf === 'ES'
+    ){
+
+        divisor = 0.93
+
+    }else{
+
+        divisor = 0.88
+
+    }
+
+    // =====================================
+    // 10 - TOTAL
+    // =====================================
+
+    const freteFinal =
+    subtotal / divisor
+
+    document.getElementById(
+    'percentualAplicado'
+    ).value =
+    `${percentual}%`
+
+    document.getElementById(
+    'valorFrete'
+    ).value =
+    freteFinal.toFixed(2)
+
+    // =====================================
+    // 11 - RESULTADO
     // =====================================
 
     document.getElementById(
-'resultadoFrete'
-).innerHTML = `
+    'resultadoFrete'
+    ).innerHTML = `
 
-<h3>Resultado da Cotação</h3>
+    <h3>Resultado da Cotação</h3>
 
-<p>
-<b>Grupo Tarifário:</b>
-${grupoNome}
-</p>
+    <p>
+    <b>Cidade:</b>
+    ${cidade}
+    </p>
 
-<p>
-<b>Percentual Aplicado:</b>
-${percentual}%
-</p>
+    <p>
+    <b>UF:</b>
+    ${uf}
+    </p>
 
-<p>
-<b>Valor da Nota:</b>
-R$ ${valorNota.toFixed(2)}
-</p>
+    <p>
+    <b>Unidade Atendente:</b>
+    ${cidadeInfo.unidade}
+    </p>
 
-<hr>
+    <p>
+    <b>Grupo Tarifário:</b>
+    ${grupoNome}
+    </p>
 
-<p>
-<b>Frete Peso:</b>
-R$ ${fretePeso.toFixed(2)}
-</p>
+    <p>
+    <b>Percentual Aplicado:</b>
+    ${percentual}%
+    </p>
 
-<p>
-<b>GRIS:</b>
-R$ ${gris.toFixed(2)}
-</p>
+    <p>
+    <b>Frete Mínimo:</b>
+    R$ ${Number(grupo.frete_minimo).toFixed(2)}
+    </p>
 
-<p>
-<b>Pedágio:</b>
-R$ ${pedagio.toFixed(2)}
-</p>
+    <p>
+    <b>Valor da Nota:</b>
+    R$ ${valorNota.toFixed(2)}
+    </p>
 
-<p>
-<b>TAD:</b>
-R$ ${tad.toFixed(2)}
-</p>
+    <hr>
 
-<p>
-<b>TEC:</b>
-R$ ${tec.toFixed(2)}
-</p>
+    <p>
+    <b>Frete Peso:</b>
+    R$ ${fretePeso.toFixed(2)}
+    </p>
 
-<p>
-<b>Outros:</b>
-R$ ${outros.toFixed(2)}
-</p>
+    <p>
+    <b>GRIS:</b>
+    R$ ${gris.toFixed(2)}
+    </p>
 
-<hr>
+    <p>
+    <b>Pedágio:</b>
+    R$ ${pedagio.toFixed(2)}
+    </p>
 
-<p>
-<b>Subtotal:</b>
-R$ ${subtotal.toFixed(2)}
-</p>
+    <p>
+    <b>TAD:</b>
+    R$ ${tad.toFixed(2)}
+    </p>
 
-<p>
-<b>Divisor ICMS:</b>
-${divisor}
-</p>
 
-<hr>
 
-<h2>
-Total:
-R$ ${freteFinal.toFixed(2)}
-</h2>
-`
+    <hr>
+
+    <p>
+    <b>Subtotal:</b>
+    R$ ${subtotal.toFixed(2)}
+    </p>
+
+    <p>
+    <b>ICMS Divisor:</b>
+    ${divisor}
+    </p>
+
+    <hr>
+
+    <h2>
+    Total:
+    R$ ${freteFinal.toFixed(2)}
+    </h2>
+    `
 }
-
 
 function limparFormularioTaxa(){
 
