@@ -112,6 +112,31 @@
             <button class="btn-gerar" onclick="rastrearCte()">Buscar</button>
         </div>
 
+        <div class="filtros-rastreio">
+
+    <button
+        id="btnFiltroTodos"
+        class="btn-filtro ativo"
+        onclick="trocarFiltroRastreio('todos')">
+        Todos
+    </button>
+
+    <button
+        id="btnFiltroCte"
+        class="btn-filtro"
+        onclick="trocarFiltroRastreio('cte')">
+        CT-es
+    </button>
+
+    <button
+        id="btnFiltroNota"
+        class="btn-filtro"
+        onclick="trocarFiltroRastreio('nota')">
+        Notas
+    </button>
+
+</div>
+
         <div id="resultadoRastreio" class="rastreio-container"></div>
     </div>
 </div>

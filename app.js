@@ -7,6 +7,8 @@ let viagens=[]
 let viagemAtual=null
 let transportadoraSelecionada='MACEDO'
 
+let filtroRastreio = "todos";
+
 let taxaEditando = null
 
 function agoraBrasil(){
@@ -550,18 +552,60 @@ const busca=buscaOriginal.replace(/\D/g,'').replace(/^0+/,'')
 
  const encontrados=(data||[]).filter(d=>{
 
-  const numeroCte=String(d.numero_cte||'').replace(/\D/g,'')
-  const numeroNota=String(d.numero_nota||'').replace(/\D/g,'').replace(/^0+/,'')
-  const remetente=String(d.remetente_cnpj||'').replace(/\D/g,'')
-  const destinatario=String(d.destinatario_cnpj||'').replace(/\D/g,'')
+    const numeroCte =
+    String(d.numero_cte||'')
+    .replace(/\D/g,'');
 
-  return (
-   numeroCte.includes(busca) ||
-   numeroNota.includes(busca) ||
-   remetente.includes(busca) ||
-   destinatario.includes(busca)
-  )
- })
+    const numeroNota =
+    String(d.numero_nota||'')
+    .replace(/\D/g,'')
+    .replace(/^0+/,'');
+
+    const remetente =
+    String(d.remetente||'').toUpperCase();
+
+    const destinatario =
+    String(d.destinatario||'').toUpperCase();
+
+    const remetenteCnpj =
+    String(d.remetente_cnpj||'')
+    .replace(/\D/g,'');
+
+    const destinatarioCnpj =
+    String(d.destinatario_cnpj||'')
+    .replace(/\D/g,'');
+
+    const texto =
+    buscaOriginal.toUpperCase();
+
+    let encontrou=false;
+
+    if(/^\d+$/.test(busca)){
+
+        if(filtroRastreio=="cte")
+            encontrou=numeroCte.startsWith(busca);
+
+        else if(filtroRastreio=="nota")
+            encontrou=numeroNota.startsWith(busca);
+
+        else
+            encontrou=
+                numeroCte.startsWith(busca) ||
+                numeroNota.startsWith(busca) ||
+                remetenteCnpj.includes(busca) ||
+                destinatarioCnpj.includes(busca);
+
+    }else{
+
+        encontrou=
+            remetente.includes(texto) ||
+            destinatario.includes(texto);
+
+    }
+
+    return encontrou;
+
+});
 
  const div=document.getElementById('resultadoRastreio')
 
@@ -769,6 +813,28 @@ ${
   `
  })
 }
+
+
+function trocarFiltroRastreio(tipo){
+
+    filtroRastreio = tipo;
+
+    document.querySelectorAll(".btn-filtro")
+    .forEach(b=>b.classList.remove("ativo"));
+
+    if(tipo=="todos")
+        document.getElementById("btnFiltroTodos").classList.add("ativo");
+
+    if(tipo=="cte")
+        document.getElementById("btnFiltroCte").classList.add("ativo");
+
+    if(tipo=="nota")
+        document.getElementById("btnFiltroNota").classList.add("ativo");
+
+    rastrearCte();
+
+}
+
 
 
 
