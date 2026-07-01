@@ -1,51 +1,56 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Motorista GPS</title>
+<meta charset="utf-8">
+<title>GPS Motorista</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
 
 <body style="font-family:Arial;text-align:center;padding:30px">
 
 <h2>ACR Tracking</h2>
 
-<button onclick="start()">INICIAR GPS</button>
+<input id="id" placeholder="ID do veículo (ex: CAMINHAO_01)" />
+<br><br>
+
+<button onclick="start()">INICIAR RASTREAMENTO</button>
 
 <p id="status">Parado</p>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-
 <script>
-const supabaseUrl = "https://yofrzgorwhvzjovqnrlt.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZnJ6Z29yd2h2empvdnFucmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MTM0NzcsImV4cCI6MjA5ODQ4OTQ3N30.7sdkE-FomxhQcUlVvvy8b4RA03K5JmPFoz6sh2M4T1s";
 
-const client = supabase.createClient(supabaseUrl, supabaseKey);
+const supabase = window.supabase.createClient(
+  "https://yofrzgorwhvzjovqnrlt.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZnJ6Z29yd2h2empvdnFucmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MTM0NzcsImV4cCI6MjA5ODQ4OTQ3N30.7sdkE-FomxhQcUlVvvy8b4RA03K5JmPFoz6sh2M4T1s"
+);
 
-let motorista = "CAMINHAO_01";
+let lastSend = 0;
 
 function start() {
 
-  document.getElementById("status").innerText = "Rastreando...";
+  const motorista = document.getElementById("id").value;
+
+  document.getElementById("status").innerText = "🟢 Rastreando";
 
   navigator.geolocation.watchPosition(async (pos) => {
 
-    const lat = pos.coords.latitude;
-    const lng = pos.coords.longitude;
-    const speed = pos.coords.speed || 0;
+    const now = Date.now();
+    if (now - lastSend < 4000) return;
+    lastSend = now;
 
-    await client.from("localizacoes").insert([{
+    await supabase.from("localizacoes").insert([{
       motorista,
-      lat,
-      lng,
-      velocidade: speed
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+      velocidade: pos.coords.speed || 0
     }]);
 
   }, err => console.log(err), {
-    enableHighAccuracy: true,
-    maximumAge: 0
+    enableHighAccuracy: true
   });
 
 }
+
 </script>
 
 </body>

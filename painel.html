@@ -1,27 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Painel ACR</title>
+<meta charset="utf-8">
+<title>Painel ACR</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
-  <style>
-    #map { height: 100vh; }
-  </style>
+<style>
+body { margin:0; font-family:Arial; }
+#map { height:100vh; }
+.top {
+  position:absolute;
+  z-index:999;
+  background:#fff;
+  padding:10px;
+  width:100%;
+}
+</style>
 </head>
 
 <body>
+
+<div class="top">
+🚚 ACR Tracking - AO VIVO
+</div>
 
 <div id="map"></div>
 
 <script>
 
-const supabaseUrl = "https://yofrzgorwhvzjovqnrlt.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZnJ6Z29yd2h2empvdnFucmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MTM0NzcsImV4cCI6MjA5ODQ4OTQ3N30.7sdkE-FomxhQcUlVvvy8b4RA03K5JmPFoz6sh2M4T1s";
-const client = supabase.createClient(supabaseUrl, supabaseKey);
+const supabase = window.supabase.createClient(
+  "https://yofrzgorwhvzjovqnrlt.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZnJ6Z29yd2h2empvdnFucmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MTM0NzcsImV4cCI6MjA5ODQ4OTQ3N30.7sdkE-FomxhQcUlVvvy8b4RA03K5JmPFoz6sh2M4T1s"
+);
 
 const map = L.map('map').setView([-22.2, -49.9], 13);
 
@@ -29,31 +42,47 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19
 }).addTo(map);
 
-let marker;
+const markers = {};
+const lastTime = {};
 
-async function load() {
+function status(motorista) {
 
-  const { data } = await client
-    .from("localizacoes")
-    .select("*")
-    .order("id", { ascending: false })
-    .limit(1);
+  const now = Date.now();
+  const last = lastTime[motorista];
 
-  if (!data || data.length === 0) return;
-
-  const d = data[0];
-
-  if (!marker) {
-    marker = L.marker([d.lat, d.lng]).addTo(map);
-  } else {
-    marker.setLatLng([d.lat, d.lng]);
-  }
-
-  map.setView([d.lat, d.lng]);
+  if (!last) return "⚫ offline";
+  if (now - last > 15000) return "🔴 parado";
+  return "🟢 ativo";
 
 }
 
-setInterval(load, 3000);
+function update(data) {
+
+  const id = data.motorista;
+  lastTime[id] = Date.now();
+
+  if (!markers[id]) {
+    markers[id] = L.marker([data.lat, data.lng]).addTo(map)
+      .bindPopup(id);
+  } else {
+    markers[id].setLatLng([data.lat, data.lng]);
+  }
+
+  map.setView([data.lat, data.lng]);
+
+}
+
+// 🔥 REALTIME
+supabase
+.channel('gps')
+.on('postgres_changes', {
+  event: 'INSERT',
+  schema: 'public',
+  table: 'localizacoes'
+}, payload => {
+  update(payload.new);
+})
+.subscribe();
 
 </script>
 
