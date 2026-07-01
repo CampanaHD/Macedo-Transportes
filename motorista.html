@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>GPS</title>
+<title>GPS Motorista</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 </head>
@@ -11,27 +11,33 @@
 
 <h2>GPS Motorista</h2>
 
-<button onclick="start()">INICIAR</button>
+<input id="motorista" placeholder="CAMINHAO_01" />
+
+<br><br>
+
+<button onclick="start()">INICIAR RASTREAMENTO</button>
 
 <p id="status">parado</p>
 
 <script>
 
+// 🔥 1. CRIA CLIENTE CORRETO (NUNCA "supabase =")
 const sb = supabase.createClient(
   "https://yofrzgorwhvzjovqnrlt.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZnJ6Z29yd2h2empvdnFucmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MTM0NzcsImV4cCI6MjA5ODQ4OTQ3N30.7sdkE-FomxhQcUlVvvy8b4RA03K5JmPFoz6sh2M4T1s"
 );
 
-let motorista = "CAMINHAO_01";
+// 🔥 2. FUNÇÃO GLOBAL (PRECISA ESTAR FORA)
+window.start = function () {
 
-function start() {
+  const motorista = document.getElementById("motorista").value;
 
-  document.getElementById("status").innerText = "rodando";
-
-  if (!navigator.geolocation) {
-    alert("GPS não suportado");
+  if (!motorista) {
+    alert("Digite o ID do caminhão");
     return;
   }
+
+  document.getElementById("status").innerText = "🟢 rastreando";
 
   navigator.geolocation.watchPosition(async (pos) => {
 
