@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GPS Motorista</title>
+  <meta charset="utf-8" />
+
+  <style>
+    body { font-family: Arial; text-align:center; padding:30px; }
+
+    button {
+      padding:20px;
+      font-size:20px;
+      margin-top:20px;
+    }
+
+    .status {
+      margin-top:20px;
+      font-size:18px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>ACR Tracking</h2>
+
+<div class="status" id="status">Parado</div>
+
+<button onclick="iniciar()">INICIAR RASTREAMENTO</button>
+
+<script>
+let watchId;
+
+function iniciar() {
+
+  document.getElementById("status").innerHTML = "🟢 Rastreando...";
+
+  watchId = navigator.geolocation.watchPosition((pos) => {
+
+    const data = {
+      lat: pos.coords.latitude,
+      lng: pos.coords.longitude,
+      speed: pos.coords.speed,
+      time: new Date().toISOString()
+    };
+
+    console.log("ENVIANDO:", data);
+
+    // ENVIAR PARA SEU SERVIDOR
+    fetch("https://SEU_BACKEND/salvar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+  });
+
+}
+</script>
+
+</body>
+</html>

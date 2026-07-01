@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ACR Tracking</title>
+  <meta charset="utf-8" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <style>
+    body { margin:0; font-family: Arial; }
+    #map { height: 100vh; width: 100%; }
+    .top {
+      position:absolute;
+      z-index:999;
+      background:#fff;
+      padding:10px;
+      width:100%;
+      box-shadow:0 2px 5px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="top">
+  🚚 ACR Tracking - Monitoramento em tempo real
+  <span id="info"></span>
+</div>
+
+<div id="map"></div>
+
+<script>
+  const map = L.map('map').setView([-22.21, -49.95], 13);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+  }).addTo(map);
+
+  let marker;
+
+  async function atualizar() {
+    // SIMULAÇÃO (depois ligamos no Supabase)
+    const res = await fetch("https://SEU_BACKEND/localizacao.json");
+    const data = await res.json();
+
+    const lat = data.lat;
+    const lng = data.lng;
+
+    document.getElementById("info").innerHTML =
+      ` | Lat: ${lat} | Lng: ${lng}`;
+
+    if (!marker) {
+      marker = L.marker([lat, lng]).addTo(map);
+    } else {
+      marker.setLatLng([lat, lng]);
+    }
+
+    map.setView([lat, lng]);
+  }
+
+  setInterval(atualizar, 3000);
+</script>
+
+</body>
+</html>
