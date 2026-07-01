@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Replay de Rotas</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<style>
+body { margin:0; font-family:Arial; }
+#map { height:100vh; }
+
+.panel {
+  position:absolute;
+  z-index:999;
+  background:white;
+  padding:10px;
+  width:100%;
+  box-shadow:0 2px 10px rgba(0,0,0,0.2);
+}
+</style>
+</head>
+
+<body>
+
+<div class="panel">
+  🚚 Replay de Rotas
+
+  <input id="motorista" placeholder="CAMINHAO_01">
+  <input id="data" type="date">
+  <button onclick="loadReplay()">Carregar</button>
+  <button onclick="play()">▶ Play</button>
+</div>
+
+<div id="map"></div>
+
+<script>
+
+const supabase = window.supabase.createClient(
+  "https://yofrzgorwhvzjovqnrlt.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZnJ6Z29yd2h2empvdnFucmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MTM0NzcsImV4cCI6MjA5ODQ4OTQ3N30.7sdkE-FomxhQcUlVvvy8b4RA03K5JmPFoz6sh2M4T1s"
+);
+
+const map = L.map('map').setView([-22.2, -49.9], 13);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19
+}).addTo(map);
+
+let route = [];
+let marker;
+let i = 0;
+
+async function loadReplay() {
+
+  const motorista = document.getElementById("motorista").value;
+  const data = document.getElementById("data").value;
+
+  const start = data + "T00:00:00";
+  const end = data + "T23:59:59";
+
+  const { data: result } = await supabase
+    .from("localizacoes")
+    .select("*")
+    .eq("motorista", motorista)
+    .gte("created_at", start)
+    .lte("created_at", end)
+    .order("created_at", { ascending: true });
+
+  route = result || [];
+
+  if (route.length > 0) {
+    map.setView([route[0].lat, route[0].lng], 13);
+  }
+
+  alert("Replay carregado: " + route.length + " pontos");
+
+}
+
+function play() {
+
+  if (route.length === 0) return;
+
+  i = 0;
+
+  if (marker) map.removeLayer(marker);
+
+  marker = L.marker([route[0].lat, route[0].lng]).addTo(map);
+
+  const line = L.polyline([], {color:'blue'}).addTo(map);
+
+  function step() {
+
+    if (i >= route.length) return;
+
+    const p = route[i];
+
+    marker.setLatLng([p.lat, p.lng]);
+    line.addLatLng([p.lat, p.lng]);
+
+    map.panTo([p.lat, p.lng]);
+
+    i++;
+
+    setTimeout(step, 300); // velocidade do replay
+  }
+
+  step();
+}
+
+</script>
+
+</body>
+</html>

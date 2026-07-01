@@ -11,12 +11,14 @@
 <style>
 body { margin:0; font-family:Arial; }
 #map { height:100vh; }
+
 .top {
   position:absolute;
   z-index:999;
   background:#fff;
   padding:10px;
   width:100%;
+  font-weight:bold;
 }
 </style>
 </head>
@@ -31,7 +33,7 @@ body { margin:0; font-family:Arial; }
 
 <script>
 
-const supabase = window.supabase.createClient(
+const sb = window.supabase.createClient(
   "https://yofrzgorwhvzjovqnrlt.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlvZnJ6Z29yd2h2empvdnFucmx0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI5MTM0NzcsImV4cCI6MjA5ODQ4OTQ3N30.7sdkE-FomxhQcUlVvvy8b4RA03K5JmPFoz6sh2M4T1s"
 );
@@ -43,38 +45,42 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 const markers = {};
-const lastTime = {};
+const lastUpdate = {};
 
-function status(motorista) {
-
+// 🔥 FUNÇÃO STATUS
+function getStatus(id) {
   const now = Date.now();
-  const last = lastTime[motorista];
+  const last = lastUpdate[id];
 
   if (!last) return "⚫ offline";
   if (now - last > 15000) return "🔴 parado";
   return "🟢 ativo";
-
 }
 
+// 🔥 UPDATE SEM TRAVAR MAPA
 function update(data) {
 
   const id = data.motorista;
-  lastTime[id] = Date.now();
+  lastUpdate[id] = Date.now();
 
   if (!markers[id]) {
-    markers[id] = L.marker([data.lat, data.lng]).addTo(map)
-      .bindPopup(id);
+    markers[id] = L.marker([data.lat, data.lng])
+      .addTo(map)
+      .bindPopup(() => {
+        return `
+          <b>${id}</b><br>
+          Status: ${getStatus(id)}
+        `;
+      });
   } else {
     markers[id].setLatLng([data.lat, data.lng]);
   }
 
-  map.setView([data.lat, data.lng]);
-
 }
 
-// 🔥 REALTIME
-supabase
-.channel('gps')
+// 🔥 REALTIME (mais leve)
+sb
+.channel('gps-live')
 .on('postgres_changes', {
   event: 'INSERT',
   schema: 'public',
